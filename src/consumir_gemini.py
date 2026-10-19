@@ -8,6 +8,8 @@ load_dotenv()
 MODELO = "gemini-3.6-flash"
 URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models/"
 API_KEY = os.getenv("GEMINI_API_KEY")
+PRECIO_ENTRADA = 0.00000075
+PRECIO_SALIDA = 0.00000375
 
 #función para crear la solicitud
 def armar_peticion(pregunta):
@@ -48,7 +50,34 @@ def extraer_texto(datos):#Gemini
 def obtener_dato_de_prueba(pregunta):
     url, body = armar_peticion(pregunta)
     datos = enviar_peticion(url, body)
+    costo = calcular_costos(datos, PRECIO_ENTRADA, PRECIO_SALIDA)
+    print(f"Costo de la petición: ${costo:.6f} USD")
     return extraer_texto(datos)
+
+#def calcular_costos(datos:dict, precio_entrda: float, precio_salida: float) -> float:
+def calcular_costos(datos, precio_entrada, precio_salida):
+    #datos = {dict... "usageMetadata"}
+    uso = datos["usageMetadata"]
+    '''
+    uso = {
+        "promptTokenCount": 33,
+        "candidatesTokenCount": 401,
+        "totalTokenCount": 1470,
+        "promptTokensDetails": [
+            {
+                "modality": "TEXT",
+                "tokenCount": 33
+            }
+        ],
+        "thoughtsTokenCount": 1036,
+        "serviceTier": "standard"
+    }
+    '''
+    tokens_entrada = uso["promptTokenCount"]
+    tokens_salida = uso["candidatesTokenCount"]
+    tokens_razonamiento = uso["thoughtsTokenCount"]
+    costo = (tokens_entrada * precio_entrada) + ((tokens_salida + tokens_razonamiento) * precio_salida)
+    return costo
 
 try:
     print(obtener_dato_de_prueba("Confirma en una frase corta que esta conexión funciona"))
