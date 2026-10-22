@@ -1,5 +1,7 @@
 import time
 import statistics
+from pathlib import Path
+from datetime import datetime
 
 from consumir_gemini import (
     armar_peticion,
@@ -84,12 +86,68 @@ def probar_modelo(configuracion):
 
     return resultados
 
+def guardar_resumen(resumen, resultados_por_modelo):
+    carpeta = Path(__file__).resolve().parent.parent / "docs"
+    carpeta.mkdir(parents=True, exist_ok=True)
+
+    ahora = datetime.now().astimezone()
+    fecha = ahora.strftime("%Y-%m-%d_%H-%M-%S")
+    momento = ahora.strftime("%Y-%m-%d %H:%M:%S %Z")
+    archivo = carpeta / f"comparativa_modelos_{fecha}.md"
+
+    lineas = [
+        "# Comparativa de modelos",
+        "",
+        f"Fecha: {momento}",
+        f"Repeticiones por modelo: {REPETICIONES}",
+        "",
+        "## Prompt utilizado",
+        "",
+        PROMPT,
+        "",
+        "## Resultados",
+        "",
+        "| Modelo | Latencia promedio (s) | Costo promedio estimado (USD) | Éxitos |",
+        "| --- | ---: | ---: | ---: |",
+    ]
+
+    for item in resumen:
+        lineas.append(
+            f"| {item['modelo']} "
+            f"| {item['latencia']:.2f} "
+            f"| {item['costo']:.8f} "
+            f"| {item['exitosas']}/{REPETICIONES} |"
+        )
+
+    if not resumen:
+        lineas.extend(["", "No se obtuvieron resultados válidos."])
+
+    lineas.extend(["", "## Respuestas por ejecución", ""])
+    for nombre_modelo, ejecuciones in resultados_por_modelo.items():
+        lineas.extend([f"### {nombre_modelo}", ""])
+        for numero, resultado in enumerate(ejecuciones, start=1):
+            lineas.extend([
+                f"#### Ejecución {numero}",
+                "",
+                f"- Latencia: {resultado['latencia']:.2f} s",
+                f"- Costo estimado: ${resultado['costo']:.8f} USD",
+                "",
+                "```text",
+                resultado["respuesta"].rstrip(),
+                "```",
+                "",
+            ])
+
+    archivo.write_text("\n".join(lineas) + "\n", encoding="utf-8")
+    print(f"\nResumen guardado en: {archivo}")
 
 def main():
     resumen = []
+    resultados_por_modelo = {}
 
     for modelo in MODELOS:
         resultados = probar_modelo(modelo)
+        resultados_por_modelo[modelo["nombre"]] = resultados
 
         if not resultados:
             print(f"Sin resultados válidos para {modelo['nombre']}")
@@ -127,6 +185,7 @@ def main():
             f"${item['costo']:<19.8f}"
             f"{item['exitosas']}/{REPETICIONES}"
         )
+    guardar_resumen(resumen, resultados_por_modelo)
 
 
 if __name__ == "__main__":
