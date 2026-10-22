@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1920" viewBox="0 0 1700 1920" role="img" aria-labelledby="title desc">
+  <title id="title">Arquitectura actualizada de Consumir Gemini</title>
+  <desc id="desc">Diagrama del consumo de Gemini con medición de latencia y comparación repetida de modelos, que genera una tabla y un informe Markdown con respuestas.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M1 1L10 6L1 11" fill="none" stroke="#7055A5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <style>
+      text{font-family:"Comic Sans MS","Marker Felt","Segoe Print",cursive;fill:#292735}
+      .title{font-size:34px;font-weight:650}.subtitle{font-size:18px;fill:#686477}.section{font-size:23px;font-weight:650}
+      .node{fill:#FFFFFF;stroke:#7055A5;stroke-width:2.7}.nodeText{font-size:19px;fill:#594184}
+      .body{font-size:16px;fill:#525064}.note{font-size:16px;fill:#356B9A}.flow{font-size:16px;fill:#168879}
+      .greenBox{fill:#FFFFFF;stroke:#47A38C;stroke-width:2.7}.amberBox{fill:#FFFFFF;stroke:#D39A43;stroke-width:2.7}.errorBox{fill:#FFFFFF;stroke:#D07A80;stroke-width:2.7}
+      .arrow{fill:none;stroke:#7055A5;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round;marker-end:url(#arrow)}
+      .dash{stroke-dasharray:9 8}
+    </style>
+  </defs>
+  <rect width="1700" height="1920" fill="#FFFFFF"/>
+  <text x="850" y="62" text-anchor="middle" class="title">Arquitectura · Consumir Gemini</text>
+  <text x="850" y="94" text-anchor="middle" class="subtitle">Flujo de una consulta y evaluación comparativa de modelos</text>
+
+  <!-- Individual request flow -->
+  <rect x="55" y="130" width="1590" height="950" rx="24" fill="#FFFFFF" stroke="#E4E1EC" stroke-width="1.8"/>
+  <text x="92" y="180" class="section">1 · Consulta individual — consumir_gemini.py</text>
+
+  <rect x="100" y="228" width="235" height="92" rx="18" class="node"/>
+  <text x="217" y="266" text-anchor="middle" class="nodeText">USUARIO</text>
+  <text x="217" y="294" text-anchor="middle" class="body">escribe la pregunta</text>
+
+  <rect x="405" y="218" width="340" height="112" rx="18" class="node"/>
+  <text x="575" y="262" text-anchor="middle" class="nodeText">obtener_dato_de_prueba()</text>
+  <text x="575" y="294" text-anchor="middle" class="body">coordina el flujo</text>
+  <path d="M335 274H397" class="arrow"/>
+  <text x="366" y="252" text-anchor="middle" class="flow">pregunta</text>
+
+  <rect x="820" y="218" width="330" height="112" rx="18" class="node"/>
+  <text x="985" y="262" text-anchor="middle" class="nodeText">armar_peticion()</text>
+  <text x="985" y="294" text-anchor="middle" class="body">valida pregunta · prepara URL y JSON</text>
+  <path d="M745 274H812" class="arrow"/>
+  <text x="778" y="252" text-anchor="middle" class="flow">pregunta</text>
+
+  <rect x="1250" y="218" width="330" height="112" rx="18" class="node"/>
+  <text x="1415" y="262" text-anchor="middle" class="nodeText">enviar_peticion()</text>
+  <text x="1415" y="294" text-anchor="middle" class="body">POST · timeout de 30 s</text>
+  <path d="M1150 274H1242" class="arrow"/>
+  <text x="1196" y="252" text-anchor="middle" class="flow">URL + body</text>
+
+  <rect x="820" y="390" width="330" height="100" rx="18" class="amberBox"/>
+  <text x="985" y="430" text-anchor="middle" class="nodeText">.env · GEMINI_API_KEY</text>
+  <text x="985" y="460" text-anchor="middle" class="body">se carga con load_dotenv()</text>
+  <path d="M985 390V339" class="arrow"/>
+  <text x="1010" y="366" class="flow">configura la solicitud</text>
+
+  <rect x="1250" y="390" width="330" height="100" rx="18" class="greenBox"/>
+  <text x="1415" y="430" text-anchor="middle" class="nodeText">API de Gemini</text>
+  <text x="1415" y="460" text-anchor="middle" class="body">generateContent</text>
+  <path d="M1415 330V382" class="arrow"/>
+  <text x="1460" y="365" class="flow">① inicio de latencia · POST</text>
+
+  <rect x="590" y="526" width="440" height="130" rx="20" class="node"/>
+  <text x="810" y="567" text-anchor="middle" class="nodeText">Respuesta JSON · ② FIN</text>
+  <text x="810" y="598" text-anchor="middle" class="body">candidates · content · parts</text>
+  <text x="810" y="628" text-anchor="middle" class="body">usageMetadata · conteo de tokens</text>
+  <path d="M1390 490C1340 555 1230 590 1038 590" class="arrow"/>
+  <text x="1210" y="520" text-anchor="end" class="flow">respuesta JSON · ② FIN</text>
+
+  <rect x="220" y="730" width="390" height="112" rx="18" class="greenBox"/>
+  <text x="415" y="774" text-anchor="middle" class="nodeText">calcular_costos()</text>
+  <text x="415" y="807" text-anchor="middle" class="body">tokens de entrada, salida y razonamiento</text>
+  <path d="M700 656C650 702 565 711 530 722" class="arrow"/>
+  <text x="568" y="690" class="flow">usa usageMetadata</text>
+
+  <rect x="745" y="730" width="390" height="112" rx="18" class="node"/>
+  <text x="940" y="774" text-anchor="middle" class="nodeText">extraer_texto()</text>
+  <text x="940" y="807" text-anchor="middle" class="body">obtiene el texto generado</text>
+  <path d="M810 656V722" class="arrow"/>
+  <text x="825" y="697" class="flow">texto generado</text>
+
+  <rect x="1260" y="730" width="300" height="140" rx="18" class="amberBox"/>
+  <text x="1410" y="765" text-anchor="middle" class="nodeText">Latencia medida</text>
+  <text x="1410" y="795" text-anchor="middle" class="body">① antes del POST</text>
+  <text x="1410" y="822" text-anchor="middle" class="body">② al recibir el JSON</text>
+  <text x="1410" y="850" text-anchor="middle" class="body">resultado en segundos</text>
+  <path d="M1030 638C1110 660 1175 710 1252 762" class="arrow"/>
+  <text x="1140" y="680" class="flow">duración transcurrida</text>
+
+  <rect x="545" y="970" width="570" height="64" rx="16" class="node"/>
+  <text x="830" y="1010" text-anchor="middle" class="nodeText">Consola: respuesta · costo USD · modelo · latencia</text>
+  <path d="M415 842V918H670V962" class="arrow"/>
+  <text x="550" y="906" text-anchor="middle" class="flow">costo</text>
+  <path d="M940 842V918H830V962" class="arrow"/>
+  <text x="875" y="906" text-anchor="middle" class="flow">texto</text>
+  <path d="M1410 870V918H990V962" class="arrow"/>
+  <text x="1160" y="906" text-anchor="middle" class="flow">latencia</text>
+
+  <rect x="70" y="526" width="420" height="148" rx="14" class="errorBox"/>
+  <text x="280" y="562" text-anchor="middle" class="note">Fallos en envío y lectura · try/except</text>
+  <text x="280" y="590" text-anchor="middle" class="note">conexión · timeout · estado HTTP</text>
+  <text x="280" y="618" text-anchor="middle" class="note">JSON inválido · tokens faltantes</text>
+  <text x="280" y="646" text-anchor="middle" class="note">respuesta sin texto</text>
+
+  <g transform="translate(0 100)">
+  <!-- Model comparison -->
+  <rect x="55" y="1020" width="1590" height="650" rx="24" fill="#FFFFFF" stroke="#E4E1EC" stroke-width="1.8"/>
+  <text x="92" y="1070" class="section">2 · Comparación de modelos — comparar_modelos.py</text>
+
+  <rect x="100" y="1120" width="330" height="126" rx="18" class="node"/>
+  <text x="265" y="1162" text-anchor="middle" class="nodeText">Configuración</text>
+  <text x="265" y="1193" text-anchor="middle" class="body">3 modelos · tarifas · mismo prompt</text>
+  <text x="265" y="1221" text-anchor="middle" class="body">4 repeticiones por modelo</text>
+
+  <rect x="515" y="1120" width="420" height="126" rx="18" class="node"/>
+  <text x="725" y="1162" text-anchor="middle" class="nodeText">Repite el ciclo por intento</text>
+  <text x="725" y="1193" text-anchor="middle" class="body">armar → iniciar cronómetro → enviar</text>
+  <text x="725" y="1221" text-anchor="middle" class="body">recibir JSON → detener cronómetro</text>
+  <path d="M430 1183H507" class="arrow"/>
+  <text x="468" y="1163" text-anchor="middle" class="flow">por modelo</text>
+
+  <rect x="1020" y="1120" width="280" height="126" rx="18" class="greenBox"/>
+  <text x="1160" y="1162" text-anchor="middle" class="nodeText">Procesa cada respuesta</text>
+  <text x="1160" y="1193" text-anchor="middle" class="body">extrae texto y calcula costo</text>
+  <text x="1160" y="1221" text-anchor="middle" class="body">registra latencia por intento</text>
+  <path d="M935 1183H1012" class="arrow"/>
+  <text x="974" y="1163" text-anchor="middle" class="flow">por intento</text>
+
+  <rect x="1380" y="1120" width="220" height="126" rx="18" class="errorBox"/>
+  <text x="1490" y="1162" text-anchor="middle" class="nodeText">Errores</text>
+  <text x="1490" y="1193" text-anchor="middle" class="body">se reportan</text>
+  <text x="1490" y="1221" text-anchor="middle" class="body">por intento</text>
+  <path d="M1300 1183H1372" class="arrow"/>
+  <text x="1336" y="1163" text-anchor="middle" class="flow">si falla</text>
+
+  <rect x="255" y="1330" width="430" height="126" rx="18" class="greenBox"/>
+  <text x="470" y="1372" text-anchor="middle" class="nodeText">Resume por modelo</text>
+  <text x="470" y="1403" text-anchor="middle" class="body">promedio de latencia y costo</text>
+  <text x="470" y="1431" text-anchor="middle" class="body">cantidad de ejecuciones exitosas</text>
+  <path d="M1160 1246V1280H470V1322" class="arrow"/>
+  <text x="815" y="1270" text-anchor="middle" class="flow">resultados por modelo</text>
+
+  <rect x="805" y="1330" width="430" height="126" rx="18" class="node"/>
+  <text x="1020" y="1372" text-anchor="middle" class="nodeText">Muestra tabla comparativa</text>
+  <text x="1020" y="1403" text-anchor="middle" class="body">modelo · latencia · costo · éxitos</text>
+  <text x="1020" y="1431" text-anchor="middle" class="body">en la consola</text>
+  <path d="M685 1393H797" class="arrow"/>
+  <text x="741" y="1373" text-anchor="middle" class="flow">consolida</text>
+
+  <rect x="500" y="1525" width="520" height="96" rx="18" class="amberBox"/>
+  <text x="760" y="1563" text-anchor="middle" class="nodeText">Guarda informe Markdown en docs/</text>
+  <text x="760" y="1593" text-anchor="middle" class="body">resumen + prompt + latencia, costo y respuesta por intento</text>
+  <path d="M1020 1456V1490H760V1517" class="arrow"/>
+  <text x="885" y="1480" text-anchor="middle" class="flow">guarda resultados</text>
+
+  <text x="92" y="1650" class="note">La latencia se mide para cada llamada; después se promedia. Una ejecución exitosa indica respuesta procesable, no calidad evaluada.</text>
+
+  <!-- Color legend -->
+  <rect x="55" y="1690" width="1590" height="92" rx="18" fill="#FFFFFF" stroke="#E4E1EC" stroke-width="1.8"/>
+  <text x="88" y="1725" class="nodeText">Colores</text>
+  <rect x="205" y="1708" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#7055A5" stroke-width="3"/><text x="238" y="1726" class="body">flujo de la aplicación</text>
+  <rect x="465" y="1708" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#47A38C" stroke-width="3"/><text x="498" y="1726" class="body">Gemini y datos de respuesta</text>
+  <rect x="805" y="1708" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#D39A43" stroke-width="3"/><text x="838" y="1726" class="body">configuración y latencia</text>
+  <rect x="1125" y="1708" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#D07A80" stroke-width="3"/><text x="1158" y="1726" class="body">errores controlados</text>
+  <rect x="1370" y="1708" width="22" height="22" rx="5" fill="#FFFFFF" stroke="#356B9A" stroke-width="3"/><text x="1403" y="1726" class="body">notas</text>
+  <path d="M205 1753H255" stroke="#7055A5" stroke-width="2.7" marker-end="url(#arrow)"/><text x="270" y="1759" class="body">dirección del flujo</text>
+  </g>
+</svg>
