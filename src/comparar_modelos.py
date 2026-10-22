@@ -1,7 +1,7 @@
-import time
 import statistics
-from pathlib import Path
+import time
 from datetime import datetime
+from pathlib import Path
 
 from consumir_gemini import (
     armar_peticion,
@@ -11,6 +11,11 @@ from consumir_gemini import (
 )
 
 MODELOS = [
+    {
+        "nombre": "gemini-3.8-flash",
+        "precio_entrada": 0.00000075,
+        "precio_salida": 0.00000375,
+    },
     {
         "nombre": "gemini-3.6-flash",
         "precio_entrada": 0.00000075,
@@ -33,38 +38,51 @@ MODELOS = [
 
 REPETICIONES = 4
 
-PROMPT = (
-    "Soy principiante en batería electrónica. "
-    "Tengo 20 minutos disponibles y quiero mejorar "
-    "la coordinación entre manos y pies. "
-    "Mi tempo inicial es 60 BPM. "
-    "Genera una sesión estructurada con ejercicios, "
-    "duración, instrucciones y objetivos. "
-    "La duración total debe ser exactamente 20 minutos."
-)
+PROMPTS = [
+    {
+        "nombre": "crear_sesion_coordinacion",
+        "texto": (
+            "Soy principiante en batería electrónica. Tengo 20 minutos disponibles "
+            "y quiero mejorar la coordinación entre manos y pies. Mi tempo inicial "
+            "es 60 BPM. Genera una sesión estructurada con ejercicios, duración, "
+            "instrucciones y objetivos. La duración total debe ser exactamente "
+            "20 minutos."
+        ),
+    },
+    {
+        "nombre": "ajustar_practica_segun_progreso",
+        "texto": (
+            "Soy principiante en batería electrónica y practico a 60 BPM. En mis "
+            "últimas tres sesiones pude mantener el hi-hat con la mano derecha, "
+            "pero me adelanté al coordinar el bombo con el pie izquierdo. Diseña "
+            "una práctica de exactamente 12 minutos para trabajar ese problema. "
+            "Incluye tres ejercicios con duración, BPM, instrucciones y objetivo; "
+            "la suma de las duraciones debe ser exactamente 12 minutos. Aumenta "
+            "la dificultad de forma gradual y agrega una recomendación para evitar "
+            "tensión o dolor."
+        ),
+    },
+]
 
 
-def probar_modelo(configuracion):
+def probar_modelo(configuracion, prompt_config):
     nombre = configuracion["nombre"]
     resultados = []
 
     print(f"\n{'=' * 60}")
     print(f"PROBANDO MODELO: {nombre}")
+    print(f"PROMPT: {prompt_config['nombre']}")
     print(f"{'=' * 60}")
 
     for numero in range(1, REPETICIONES + 1):
         print(f"\nEjecución {numero}/{REPETICIONES}")
-
-        url, body = armar_peticion(PROMPT, nombre)
-
+        url, body = armar_peticion(prompt_config["texto"], nombre)
         inicio = time.perf_counter()
 
         try:
             datos = enviar_peticion(url, body)
             latencia = time.perf_counter() - inicio
-
             respuesta = extraer_texto(datos)
-
             costo = calcular_costos(
                 datos,
                 configuracion["precio_entrada"],
@@ -75,18 +93,20 @@ def probar_modelo(configuracion):
                 "latencia": latencia,
                 "costo": costo,
                 "respuesta": respuesta,
+                "error": None,
             })
-
             print(f"Latencia: {latencia:.2f} segundos")
             print(f"Costo estimado: ${costo:.8f} USD")
             print(f"Respuesta:\n{respuesta}")
 
-        except RuntimeError as error:
+        except (RuntimeError, ValueError) as error:
+            resultados.append({"error": str(error)})
             print(f"Error en la ejecución: {error}")
 
     return resultados
 
-def guardar_resumen(resumen, resultados_por_modelo):
+
+def guardar_resumen(resumen, resultados_por_prueba):
     carpeta = Path(__file__).resolve().parent.parent / "docs"
     carpeta.mkdir(parents=True, exist_ok=True)
 
@@ -99,93 +119,84 @@ def guardar_resumen(resumen, resultados_por_modelo):
         "# Comparativa de modelos",
         "",
         f"Fecha: {momento}",
-        f"Repeticiones por modelo: {REPETICIONES}",
+        f"Repeticiones por modelo y prompt: {REPETICIONES}",
         "",
-        "## Prompt utilizado",
+        "## Prompts utilizados",
         "",
-        PROMPT,
-        "",
-        "## Resultados",
-        "",
-        "| Modelo | Latencia promedio (s) | Costo promedio estimado (USD) | Éxitos |",
-        "| --- | ---: | ---: | ---: |",
     ]
+    for prompt in PROMPTS:
+        lineas.extend([f"### {prompt['nombre']}", "", prompt["texto"], ""])
+
+    lineas.extend([
+        "## Resultados promedio",
+        "",
+        "| Prompt | Modelo | Latencia promedio (s) | Costo promedio estimado (USD) | Éxitos |",
+        "| --- | --- | ---: | ---: | ---: |",
+    ])
 
     for item in resumen:
+        latencia = f"{item['latencia']:.2f}" if item["latencia"] is not None else "—"
+        costo = f"{item['costo']:.8f}" if item["costo"] is not None else "—"
         lineas.append(
-            f"| {item['modelo']} "
-            f"| {item['latencia']:.2f} "
-            f"| {item['costo']:.8f} "
+            f"| {item['prompt']} | {item['modelo']} | {latencia} | {costo} "
             f"| {item['exitosas']}/{REPETICIONES} |"
         )
 
-    if not resumen:
-        lineas.extend(["", "No se obtuvieron resultados válidos."])
-
     lineas.extend(["", "## Respuestas por ejecución", ""])
-    for nombre_modelo, ejecuciones in resultados_por_modelo.items():
-        lineas.extend([f"### {nombre_modelo}", ""])
-        for numero, resultado in enumerate(ejecuciones, start=1):
-            lineas.extend([
-                f"#### Ejecución {numero}",
-                "",
-                f"- Latencia: {resultado['latencia']:.2f} s",
-                f"- Costo estimado: ${resultado['costo']:.8f} USD",
-                "",
-                "```text",
-                resultado["respuesta"].rstrip(),
-                "```",
-                "",
-            ])
+    for prompt in PROMPTS:
+        lineas.extend([f"### Prompt: {prompt['nombre']}", ""])
+        for modelo in MODELOS:
+            clave = (prompt["nombre"], modelo["nombre"])
+            ejecuciones = resultados_por_prueba[clave]
+            lineas.extend([f"#### {modelo['nombre']}", ""])
+            for numero, resultado in enumerate(ejecuciones, start=1):
+                lineas.extend([f"##### Ejecución {numero}", ""])
+                if resultado.get("error"):
+                    lineas.extend([f"Error: {resultado['error']}", ""])
+                    continue
+                lineas.extend([
+                    f"- Latencia: {resultado['latencia']:.2f} s",
+                    f"- Costo estimado: ${resultado['costo']:.8f} USD",
+                    "",
+                    "```text",
+                    resultado["respuesta"].rstrip(),
+                    "```",
+                    "",
+                ])
 
     archivo.write_text("\n".join(lineas) + "\n", encoding="utf-8")
     print(f"\nResumen guardado en: {archivo}")
 
+
 def main():
     resumen = []
-    resultados_por_modelo = {}
+    resultados_por_prueba = {}
 
-    for modelo in MODELOS:
-        resultados = probar_modelo(modelo)
-        resultados_por_modelo[modelo["nombre"]] = resultados
+    for prompt in PROMPTS:
+        for modelo in MODELOS:
+            resultados = probar_modelo(modelo, prompt)
+            resultados_por_prueba[(prompt["nombre"], modelo["nombre"])] = resultados
+            exitosos = [resultado for resultado in resultados if not resultado.get("error")]
 
-        if not resultados:
-            print(f"Sin resultados válidos para {modelo['nombre']}")
-            continue
-
-        latencia_promedio = statistics.mean(
-            resultado["latencia"]
-            for resultado in resultados
-        )
-
-        costo_promedio = statistics.mean(
-            resultado["costo"]
-            for resultado in resultados
-        )
-
-        resumen.append({
-            "modelo": modelo["nombre"],
-            "latencia": latencia_promedio,
-            "costo": costo_promedio,
-            "exitosas": len(resultados),
-        })
+            resumen.append({
+                "prompt": prompt["nombre"],
+                "modelo": modelo["nombre"],
+                "latencia": statistics.mean(r["latencia"] for r in exitosos) if exitosos else None,
+                "costo": statistics.mean(r["costo"] for r in exitosos) if exitosos else None,
+                "exitosas": len(exitosos),
+            })
 
     print("\n\nTABLA COMPARATIVA")
-    print(
-        f"{'Modelo':<25}"
-        f"{'Latencia promedio':<22}"
-        f"{'Costo promedio':<20}"
-        f"{'Éxitos'}"
-    )
-
+    print(f"{'Prompt':<38}{'Modelo':<28}{'Latencia prom.':<18}{'Costo prom.':<18}{'Éxitos'}")
     for item in resumen:
+        latencia = f"{item['latencia']:.2f}" if item["latencia"] is not None else "—"
+        costo = f"${item['costo']:.8f}" if item["costo"] is not None else "—"
         print(
-            f"{item['modelo']:<25}"
-            f"{item['latencia']:<22.2f}"
-            f"${item['costo']:<19.8f}"
-            f"{item['exitosas']}/{REPETICIONES}"
+            f"{item['prompt']:<38}{item['modelo']:<28}{latencia:<18}"
+            f"{costo:<18}{item['exitosas']}/{REPETICIONES}"
         )
-    guardar_resumen(resumen, resultados_por_modelo)
+
+    guardar_resumen(resumen, resultados_por_prueba)
 
 
 if __name__ == "__main__":
