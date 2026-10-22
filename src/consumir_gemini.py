@@ -7,18 +7,21 @@ import time
 load_dotenv()
 
 #Constantes
-MODELO = "gemini-3.6-flash"
+MODELO = "gemini-3.5-flash-lite"
 URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models/"
 API_KEY = os.getenv("GEMINI_API_KEY")
 PRECIO_ENTRADA = 0.00000075
 PRECIO_SALIDA = 0.00000375
 
 #función para crear la solicitud
-def armar_peticion(pregunta, modelo=MODELO):
+def armar_peticion(pregunta, system_instruction, modelo=MODELO):
     if not pregunta:
         raise ValueError("La pregunta no puede estar vacía")
     url = f"{URL_BASE}{modelo}:generateContent?key={API_KEY}"
     body = {
+        "systemInstruction": {
+            "parts": [ {"text": system_instruction} ]
+        },
         "contents": [
             {"parts": [{"text": pregunta}]}
         ]
@@ -50,7 +53,8 @@ def extraer_texto(datos):#Gemini
         raise RuntimeError("La respuesta no recibe el texto generado en el lugar definido.")
 
 def obtener_dato_de_prueba(pregunta):
-    url, body = armar_peticion(pregunta)
+    system_instruction = "Eres un asistente amigable y respondes en máximo 2 palabras."
+    url, body = armar_peticion(pregunta, system_instruction, "gemini-3.6-flash") #obtiene url y body
 
     inicio = time.perf_counter() #Empieza el contador
 
