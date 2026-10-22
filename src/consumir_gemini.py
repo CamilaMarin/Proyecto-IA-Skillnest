@@ -2,6 +2,8 @@ import os
 import requests
 from dotenv import load_dotenv
 
+import time
+
 load_dotenv()
 
 #Constantes
@@ -12,10 +14,10 @@ PRECIO_ENTRADA = 0.00000075
 PRECIO_SALIDA = 0.00000375
 
 #función para crear la solicitud
-def armar_peticion(pregunta):
+def armar_peticion(pregunta, modelo=MODELO):
     if not pregunta:
         raise ValueError("La pregunta no puede estar vacía")
-    url = f"{URL_BASE}{MODELO}:generateContent?key={API_KEY}"
+    url = f"{URL_BASE}{modelo}:generateContent?key={API_KEY}"
     body = {
         "contents": [
             {"parts": [{"text": pregunta}]}
@@ -49,7 +51,15 @@ def extraer_texto(datos):#Gemini
 
 def obtener_dato_de_prueba(pregunta):
     url, body = armar_peticion(pregunta)
+
+    inicio = time.perf_counter() #Empieza el contador
+
     datos = enviar_peticion(url, body)
+
+    fin = time.perf_counter() #Termina el contador
+    latencia = fin - inicio
+    print("Modelo: ", MODELO)
+    print(f"Latencia: {latencia:.2f} segundos")
     costo = calcular_costos(datos, PRECIO_ENTRADA, PRECIO_SALIDA)
     print(f"Costo de la petición: ${costo:.6f} USD")
     return extraer_texto(datos)
