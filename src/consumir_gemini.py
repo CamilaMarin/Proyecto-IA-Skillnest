@@ -67,7 +67,9 @@ def obtener_dato_de_prueba(pregunta):
 #def calcular_costos(datos:dict, precio_entrda: float, precio_salida: float) -> float:
 def calcular_costos(datos, precio_entrada, precio_salida):
     #datos = {dict... "usageMetadata"}
-    uso = datos["usageMetadata"]
+    uso = datos.get("usageMetadata") if isinstance(datos, dict) else None
+    if not isinstance(uso, dict):
+        raise RuntimeError("La respuesta no incluye datos de uso para calcular el costo.")
     '''
     uso = {
         "promptTokenCount": 33,
@@ -83,13 +85,20 @@ def calcular_costos(datos, precio_entrada, precio_salida):
         "serviceTier": "standard"
     }
     '''
-    tokens_entrada = uso["promptTokenCount"]
-    tokens_salida = uso["candidatesTokenCount"]
-    tokens_razonamiento = uso["thoughtsTokenCount"]
+    try:
+        tokens_entrada = uso["promptTokenCount"]
+        tokens_salida = uso["candidatesTokenCount"]
+    except KeyError:
+        raise RuntimeError("Faltan los tokens de entrada o salida para calcular el costo.") from None
+    tokens_razonamiento = uso.get("thoughtsTokenCount", 0)
+    for tokens in (tokens_entrada, tokens_salida, tokens_razonamiento):
+        if type(tokens) is not int or tokens < 0:
+            raise RuntimeError("Los datos de tokens deben ser números enteros no negativos.")
     costo = (tokens_entrada * precio_entrada) + ((tokens_salida + tokens_razonamiento) * precio_salida)
     return costo
 
-try:
-    print(obtener_dato_de_prueba("Confirma en una frase corta que esta conexión funciona"))
-except (ValueError, RuntimeError) as error:
-    print("No se pudo completar la operación: ", error)
+if __name__ == "__main__":
+    try:
+        print(obtener_dato_de_prueba("Soy principiante en batería electrónica. Tengo 20 minutos disponibles y quiero Mejorar la coordinación entre manos y pies. Mi tempo inicial es 60 BPM. Genera una sesión estructurada con ejercicios, duración, instrucciones y objetivos. La duración total debe ser exactamente 20 minutos."))
+    except (ValueError, RuntimeError) as error:
+        print("No se pudo completar la operación: ", error)
