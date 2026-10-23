@@ -1,0 +1,14 @@
+{
+  "crear_sesion_practica": {
+    "exitos": 3,
+    "intentos": 3
+  },
+  "proponer_ejercicio": {
+    "exitos": 3,
+    "intentos": 3
+  },
+  "ajustar_dificultad": {
+    "exitos": 3,
+    "intentos": 3
+  }
+}
