@@ -1,8 +1,9 @@
 import os
 import requests
 from dotenv import load_dotenv
-
 import time
+import json
+import re
 
 load_dotenv()
 
@@ -14,7 +15,7 @@ PRECIO_ENTRADA = 0.00000075
 PRECIO_SALIDA = 0.00000375
 
 #función para crear la solicitud
-def armar_peticion(pregunta, system_instruction, modelo=MODELO):
+def armar_peticion(pregunta, system_instruction, response_schema=None, modelo=MODELO):
     if not pregunta:
         raise ValueError("La pregunta no puede estar vacía")
     url = f"{URL_BASE}{modelo}:generateContent?key={API_KEY}"
@@ -25,6 +26,11 @@ def armar_peticion(pregunta, system_instruction, modelo=MODELO):
         "contents": [
             {"parts": [{"text": pregunta}]}
         ]
+    }
+    if response_schema is not None:
+        body["generationConfig"] = {
+            "responseMimeType": "application/json",
+            "responseSchema": response_schema
     }
     return url, body
 
@@ -53,8 +59,53 @@ def extraer_texto(datos):#Gemini
         raise RuntimeError("La respuesta no recibe el texto generado en el lugar definido.")
 
 def obtener_dato_de_prueba(pregunta):
-    system_instruction = "Eres un asistente amigable y respondes en máximo 2 palabras."
-    url, body = armar_peticion(pregunta, system_instruction, "gemini-3.6-flash") #obtiene url y body
+    response_schema = {
+        "type": "OBJECT",
+        "properties": {
+            "instrumento": {
+                "type": "STRING",
+                "enum": ["bateria_electronica"],
+            },
+            "nivel": {
+                "type": "STRING",
+                "enum": ["principiante", "intermedio", "avanzado"],
+            },
+            "objetivo_practica": {"type": "STRING"},
+            "duracion_real_minutos": {"type": "NUMBER"},
+            "bpm": {"type": "INTEGER"},
+            "sesion_completada": {"type": "BOOLEAN"},
+            "dificultad_observada": {"type": "STRING"},
+            "molestia_reportada": {"type": "BOOLEAN"},
+        },
+        "required": [
+            "instrumento",
+            "nivel",
+            "objetivo_practica",
+            "duracion_real_minutos",
+            "bpm",
+            "sesion_completada",
+            "dificultad_observada",
+            "molestia_reportada",
+        ],
+    }
+    system_instruction = (
+        "Eres RhythmMentor y organizas registros de práctica de batería. "
+        "Extrae únicamente la información que la persona proporcionó; no inventes "
+        "datos ni agregues recomendaciones. Devuelve solo un objeto JSON que cumpla "
+        "el esquema indicado. Marca molestia_reportada como true solo si la persona "
+        "menciona explícitamente dolor o molestias."
+    )
+    claves_esperadas = [
+        "instrumento",
+        "nivel",
+        "objetivo_practica",
+        "duracion_real_minutos",
+        "bpm",
+        "sesion_completada",
+        "dificultad_observada",
+        "molestia_reportada",
+    ]
+    url, body = armar_peticion(pregunta, system_instruction, response_schema, MODELO) #obtiene url y body
 
     inicio = time.perf_counter() #Empieza el contador
 
@@ -66,7 +117,9 @@ def obtener_dato_de_prueba(pregunta):
     print(f"Latencia: {latencia:.2f} segundos")
     costo = calcular_costos(datos, PRECIO_ENTRADA, PRECIO_SALIDA)
     print(f"Costo de la petición: ${costo:.6f} USD")
-    return extraer_texto(datos)
+    texto = extraer_texto(datos)
+    datos_formateados = parsear_respuesta_json(texto, claves_esperadas=claves_esperadas)
+    return datos_formateados
 
 #def calcular_costos(datos:dict, precio_entrda: float, precio_salida: float) -> float:
 def calcular_costos(datos, precio_entrada, precio_salida):
@@ -101,8 +154,29 @@ def calcular_costos(datos, precio_entrada, precio_salida):
     costo = (tokens_entrada * precio_entrada) + ((tokens_salida + tokens_razonamiento) * precio_salida)
     return costo
 
+def parsear_respuesta_json(texto, claves_esperadas=None):
+    texto_limpio = texto.strip()
+    texto_limpio = re.sub(r"^```(?:json)?\s*", "", texto_limpio)
+    texto_limpio = re.sub(r"\s*```$", "", texto_limpio)
+    try:
+        datos = json.loads(texto_limpio)
+    except json.JSONDecodeError:
+        raise ValueError("La respuesta del modelo no es JSON válido")
+    
+    if claves_esperadas:
+        faltantes = [clave for clave in claves_esperadas if clave not in datos]
+        if faltantes:
+            raise ValueError("La respuesta no tiene la estructura esperada.")
+    return datos
+
 if __name__ == "__main__":
     try:
-        print(obtener_dato_de_prueba("Soy principiante en batería electrónica. Tengo 20 minutos disponibles y quiero Mejorar la coordinación entre manos y pies. Mi tempo inicial es 60 BPM. Genera una sesión estructurada con ejercicios, duración, instrucciones y objetivos. La duración total debe ser exactamente 20 minutos."))
+        pregunta = (
+            "Registra esta sesión: soy principiante en batería electrónica. "
+            "Practiqué coordinación entre manos y pies durante 8 minutos a 60 BPM. "
+            "Terminé el ejercicio, pero me adelanté al usar el pie izquierdo. "
+            "No sentí dolor ni molestias."
+        )
+        print(obtener_dato_de_prueba(pregunta))
     except (ValueError, RuntimeError) as error:
         print("No se pudo completar la operación: ", error)
