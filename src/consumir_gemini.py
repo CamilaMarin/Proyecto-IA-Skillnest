@@ -11,8 +11,8 @@ load_dotenv()
 MODELO = "gemini-3.5-flash-lite"
 URL_BASE = "https://generativelanguage.googleapis.com/v1beta/models/"
 API_KEY = os.getenv("GEMINI_API_KEY")
-PRECIO_ENTRADA = 0.00000075
-PRECIO_SALIDA = 0.00000375
+PRECIO_ENTRADA = 0.0000003
+PRECIO_SALIDA = 0.0000025
 
 #función para crear la solicitud
 def armar_peticion(pregunta, system_instruction, response_schema=None, modelo=MODELO):
@@ -43,6 +43,17 @@ def enviar_peticion(url, body):
     except requests.exceptions.Timeout:
         raise RuntimeError("Se agotó el tiempo. Intenta de nuevo en unos momentos.")
 
+    if respuesta.status_code in(401, 403):
+        raise ValueError("Credencial inválida o sin permiso. Revisa tu GEMINI_API_KEY")
+
+    if respuesta.status_code >= 500:
+        raise TimeoutError("El proveedor no pudo procesar la petición. Hay que esperar y reintintar")
+    
+    if respuesta.status_code == 429:
+        segundos = respuesta.headers.get("Retry-After")
+        mensaje = f"Límite excedido. Reintentar en {segundos}s." if segundos else "Límite de uso excedido. Vuelva a intentarlo mas tarde"
+        raise TimeoutError(mensaje)
+    
     if respuesta.status_code != 200:
         raise RuntimeError(f"Error en la petición. Status Code: {respuesta.status_code}")
     
@@ -178,5 +189,5 @@ if __name__ == "__main__":
             "No sentí dolor ni molestias."
         )
         print(obtener_dato_de_prueba(pregunta))
-    except (ValueError, RuntimeError) as error:
+    except (ValueError, RuntimeError, TimeoutError) as error:
         print("No se pudo completar la operación: ", error)

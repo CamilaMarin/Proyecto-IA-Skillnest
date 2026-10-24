@@ -76,7 +76,7 @@ def probar_modelo(configuracion, prompt_config):
 
     for numero in range(1, REPETICIONES + 1):
         print(f"\nEjecución {numero}/{REPETICIONES}")
-        url, body = armar_peticion(prompt_config["texto"], nombre)
+        url, body = armar_peticion(prompt_config["texto"],"Eres RhythmMentor, un asistente de práctica musical.", response_schema=None, modelo=nombre)
         inicio = time.perf_counter()
 
         try:
@@ -99,7 +99,7 @@ def probar_modelo(configuracion, prompt_config):
             print(f"Costo estimado: ${costo:.8f} USD")
             print(f"Respuesta:\n{respuesta}")
 
-        except (RuntimeError, ValueError) as error:
+        except (RuntimeError, ValueError, TimeoutError) as error:
             resultados.append({"error": str(error)})
             print(f"Error en la ejecución: {error}")
 
