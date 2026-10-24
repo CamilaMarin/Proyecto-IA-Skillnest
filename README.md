@@ -192,3 +192,9 @@ El directorio `tests/` está reservado para pruebas automatizadas. Actualmente n
 - **Encontrado:** El README no incluía una alternativa con `python3` para macOS/Linux ni explicaba la configuración actual de la comparativa de modelos.
 - **Corregido:** Se documentaron los comandos multiplataforma, la instrucción de sistema, `response_schema=None` y el paso del modelo desde `MODELOS`. En `consumir_gemini.py` se configuró el modelo `gemini-3.5-flash-lite` y sus tarifas: USD 0,30 por millón de tokens de entrada y USD 2,50 por millón de tokens de salida.
 - **Resultado:** La configuración del modelo y las tarifas coinciden con la tarifa estándar publicada por Google al 23/10/2026. La instalación y ejecución completas en un entorno limpio quedan pendientes de validar con estos nuevos cambios.
+
+### Ensayo del 24/10/2026
+
+- **Encontrado:** No se encontraron problemas durante la instalación limpia.
+- **Corregido:** No fue necesario realizar correcciones adicionales.
+- **Resultado:** La instalación y ejecución del proyecto se completaron satisfactoriamente en un entorno limpio.
