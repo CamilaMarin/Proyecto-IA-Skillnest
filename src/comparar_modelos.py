@@ -83,7 +83,7 @@ def probar_modelo(configuracion, prompt_config):
             datos = enviar_peticion(url, body)
             latencia = time.perf_counter() - inicio
             respuesta = extraer_texto(datos)
-            costo = calcular_costos(
+            costo, total_tokens = calcular_costos(
                 datos,
                 configuracion["precio_entrada"],
                 configuracion["precio_salida"],

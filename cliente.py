@@ -1,26 +1,71 @@
 import time
+import random
+
 from typing import Callable, Any
 
-from src.consumir_gemini import armar_peticion, extraer_texto, enviar_peticion
+from src.consumir_gemini import armar_peticion, extraer_texto, enviar_peticion,calcular_costos, MODELO, PRECIO_ENTRADA, PRECIO_SALIDA
+
+# --- Mock de "enviar_peticion": simula que el proveedor falla las primeras veces ---
+intentos_previos = 0
+
+def enviar_peticion_mock(url, cuerpo: dict) -> dict:
+    global intentos_previos
+    intentos_previos += 1
+    if intentos_previos < 3:
+        raise TimeoutError("Límite de peticiones excedido. Hay que esperar y reintentar.")
+    return {"contenido": "Respuesta simulada exitosa", "intento": intentos_previos}
+
+# --- ---
 
 def con_reintento(
-    funcion: Callable[[], Any],
-    intentos: int = 3,
-    espera_segundos: int = 2,
-
+	funcion: Callable[[], Any],
+	intentos: int = 3,
+	espera_base: float = 2,
+	espera_maxima: float = 30,
 ) -> Any:
-    for intento in range(intentos):
+    for intento in range(1, intentos + 1):
         try:
             return funcion()
         except TimeoutError:
-            if intento == intentos-1:
+            if intento == intentos:
+                print(f"Intento {intento} de {intentos} falló.")
                 raise
-            print(f"Intento {intento+1} de {intentos} falló por límite uso/servidor. Reintentando...")
-            time.sleep(espera_segundos)
+            espera = min(espera_base * (2 ** (intento - 1)), espera_maxima)
+            espera_con_jitter = espera + random.uniform(0, espera * 0.1)
+            print(f"Intento {intento} de {intentos} falló. Reintentando en {espera_con_jitter:.1f}s...")
+            time.sleep(espera_con_jitter)
 
-#Tarea: Como ejecuto esto?
-if __name__ == "__main__":
+
+costo_total_sesion = 0.0
+total_tokens_sesion = 0
+
+def registrar_costo(respuesta: dict) -> float:
+    global costo_total_sesion
+    global total_tokens_sesion
+    costo_estimado, total_tokens = calcular_costos(respuesta,PRECIO_ENTRADA,PRECIO_SALIDA)
+    costo_total_sesion += costo_estimado
+    total_tokens_sesion += total_tokens
+    print(f"Operación: {total_tokens} tokens, costo estimado: ${costo_estimado:.6f} (acumulado: ${costo_total_sesion:.6f})")
+    return costo_estimado
+
+ 
+def consultar_modelo(pregunta: str, system_instruction: str = "") -> str:
     #armar_peticion(pregunta, system_instruction, response_schema=None, modelo=MODELO)
-    url, cuerpo = armar_peticion("Hola", "", None,"gemini-3.5-flash-lite")
-    respuesta = con_reintento(lambda: enviar_peticion(url, cuerpo))
-    print(respuesta)
+    url, cuerpo = armar_peticion(pregunta, system_instruction, None, MODELO)
+    try:
+        respuesta = con_reintento(lambda: enviar_peticion(url, cuerpo))
+    except TimeoutError:
+        raise RuntimeError("El servicio no respondió tras varios intentos. Intenta más tarde.")
+    registrar_costo(respuesta)
+    return extraer_texto(respuesta)
+ 
+ 
+if __name__ == "__main__":
+    for i in range(10):
+        try:
+            resultado = consultar_modelo(f"Dame un dato random en 15 o menos palabras", "")
+            print(f"Respuesta {i+1}: {resultado[:500]}")
+        except RuntimeError as error:
+            print(f"Respuesta {i+1} falló definitivamente: {error}")
+    print(f"Costo total del ensayo: ${costo_total_sesion:.5f}")
+    print(f"Total tokens del ensayo: {total_tokens_sesion}")

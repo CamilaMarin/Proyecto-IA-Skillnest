@@ -126,8 +126,8 @@ def obtener_dato_de_prueba(pregunta):
     latencia = fin - inicio
     print("Modelo: ", MODELO)
     print(f"Latencia: {latencia:.2f} segundos")
-    costo = calcular_costos(datos, PRECIO_ENTRADA, PRECIO_SALIDA)
-    print(f"Costo de la petición: ${costo:.6f} USD")
+    costo,total_tokens = calcular_costos(datos, PRECIO_ENTRADA, PRECIO_SALIDA)
+    print(f"Costo de la petición: ${costo:.6f} USD, total Tokens: {total_tokens}")
     texto = extraer_texto(datos)
     datos_formateados = parsear_respuesta_json(texto, claves_esperadas=claves_esperadas)
     return datos_formateados
@@ -156,6 +156,7 @@ def calcular_costos(datos, precio_entrada, precio_salida):
     try:
         tokens_entrada = uso["promptTokenCount"]
         tokens_salida = uso["candidatesTokenCount"]
+        total_tokens = uso["totalTokenCount"]
     except KeyError:
         raise RuntimeError("Faltan los tokens de entrada o salida para calcular el costo.") from None
     tokens_razonamiento = uso.get("thoughtsTokenCount", 0)
@@ -163,7 +164,7 @@ def calcular_costos(datos, precio_entrada, precio_salida):
         if type(tokens) is not int or tokens < 0:
             raise RuntimeError("Los datos de tokens deben ser números enteros no negativos.")
     costo = (tokens_entrada * precio_entrada) + ((tokens_salida + tokens_razonamiento) * precio_salida)
-    return costo
+    return costo, total_tokens
 
 def parsear_respuesta_json(texto, claves_esperadas=None):
     texto_limpio = texto.strip()
