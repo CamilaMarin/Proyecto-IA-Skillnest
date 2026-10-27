@@ -159,6 +159,8 @@ Antes de interpretar los resultados:
 ├── .env.example
 ├── .gitignore
 ├── README.md
+├── cliente.py
+├── test_cliente.py
 └── requirements.txt
 ```
 
@@ -168,7 +170,9 @@ Antes de interpretar los resultados:
 - `src/prompts/registro_resultados.json`: contiene los resultados de la última ejecución de consistencia.
 - `src/comparar_modelos.py`: compara los modelos definidos en el mismo archivo y guarda un informe Markdown en `docs/`.
 - `docs/`: contiene documentación técnica, diagramas, la decisión de arquitectura e informes de comparativas.
-- `tests/`: directorio reservado para pruebas automatizadas; actualmente no contiene pruebas implementadas.
+- `cliente.py`: contiene el cliente modular para enviar solicitudes a Gemini, reintentar ante `TimeoutError` y registrar el costo estimado y los tokens de la sesión.
+- `test_cliente.py`: contiene pruebas unitarias del cliente, ejecutadas con `pytest` y mocks para no enviar solicitudes reales a la API.
+- `tests/`: directorio reservado para futuras pruebas; actualmente está vacío. La suite actual está en `test_cliente.py`, junto a `cliente.py`.
 - `requirements.txt`: dependencias necesarias para instalar el proyecto.
 - `.env.example`: plantilla de variables de entorno sin credenciales reales.
 - `.gitignore`: indica a Git qué archivos debe ignorar, incluidos `.env` y el entorno virtual.
@@ -184,6 +188,35 @@ Antes de interpretar los resultados:
 ## Pruebas
 
 El directorio `tests/` está reservado para pruebas automatizadas. Actualmente no contiene pruebas implementadas.
+
+El archivo `test_cliente.py`, ubicado en la raíz junto a `cliente.py`, contiene pruebas unitarias para el cliente. Usa `pytest` y `unittest.mock` para simular las respuestas HTTP y los errores, por lo que estas pruebas no realizan solicitudes reales a Gemini ni requieren una API key.
+
+Desde la raíz del repositorio, ejecuta:
+
+```bash
+pytest test_cliente.py -v
+```
+
+Si el comando `pytest` no está disponible, ejecútalo mediante el Python del entorno virtual:
+
+```bash
+python -m pytest test_cliente.py -v
+```
+
+En macOS/Linux, si `python` no está disponible:
+
+```bash
+python3 -m pytest test_cliente.py -v
+```
+
+La suite verifica:
+
+- `enviar_peticion`: respuestas exitosas, credenciales inválidas (401 y 403), límite de uso (429), errores del servidor (500 y 503), errores de conexión y otros errores HTTP.
+- `con_reintento`: agotamiento de intentos, propagación de errores que no deben reintentarse y recuperación después de fallos temporales por timeout. También comprueba las esperas del backoff.
+- `registrar_costo`: cálculo del costo y acumulación de costo y tokens entre operaciones.
+- `consultar_modelo`: conversión de timeout agotado, propagación de `ValueError` y flujo exitoso de consulta.
+
+El fixture `reiniciar_costo_total` restablece los contadores antes de cada prueba para aislar los resultados.
 
 ## Registro del ensayo de instalación limpia
 
