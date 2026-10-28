@@ -5,18 +5,6 @@ from typing import Callable, Any
 
 from src.consumir_gemini import armar_peticion, extraer_texto, enviar_peticion,calcular_costos, MODELO, PRECIO_ENTRADA, PRECIO_SALIDA
 
-# --- Mock de "enviar_peticion": simula que el proveedor falla las primeras veces ---
-intentos_previos = 0
-
-def enviar_peticion_mock(url, cuerpo: dict) -> dict:
-    global intentos_previos
-    intentos_previos += 1
-    if intentos_previos < 3:
-        raise TimeoutError("Límite de peticiones excedido. Hay que esperar y reintentar.")
-    return {"contenido": "Respuesta simulada exitosa", "intento": intentos_previos}
-
-# --- ---
-
 def con_reintento(
 	funcion: Callable[[], Any],
 	intentos: int = 3,
