@@ -3,11 +3,9 @@ from unittest.mock import patch, Mock, call
 import pytest
 import requests
 
-import cliente
-from cliente import con_reintento, consultar_modelo, registrar_costo
-from src.consumir_gemini import enviar_peticion
-
-
+from src.cliente import con_reintento, consultar_modelo, registrar_costo
+from src.consumir_gemini import enviar_peticion, calcular_costos, parsear_respuesta_json
+import src.cliente as cliente
 
 @pytest.fixture(autouse=True)
 def reiniciar_costo_total():
@@ -89,7 +87,7 @@ def test_enviar_peticion_exito():
 def test_con_reintento_agota_intentos():
     funcion = Mock(side_effect=TimeoutError("simulado"))
 
-    with patch("cliente.time.sleep"):
+    with patch("src.cliente.time.sleep"):
         with pytest.raises(TimeoutError, match="simulado"):
             con_reintento(funcion, intentos=3)
 
@@ -113,8 +111,8 @@ def test_con_reintento_reintenta_y_luego_tiene_exito():
     )
 
     with (
-        patch("cliente.random.uniform", return_value=0),
-        patch("cliente.time.sleep") as dormir,
+        patch("src.cliente.random.uniform", return_value=0),
+        patch("src.cliente.time.sleep") as dormir,
     ):
         resultado = cliente.con_reintento(funcion, intentos=3)
 
@@ -157,14 +155,14 @@ def test_registrar_costo_acumula_varias_operaciones():
 def test_consultar_modelo_convierte_error():
     error_simulado = TimeoutError("simulado")
 
-    with patch("cliente.con_reintento", side_effect=error_simulado):
+    with patch("src.cliente.con_reintento", side_effect=error_simulado):
         with pytest.raises(RuntimeError):
             consultar_modelo("pregunta de prueba")
 
 def test_consultar_modelo_propaga_value_error():
     error_original = ValueError("credencial inválida")
 
-    with patch("cliente.con_reintento", side_effect=error_original):
+    with patch("src.cliente.con_reintento", side_effect=error_original):
         with pytest.raises(ValueError, match="credencial inválida") as error_recibido:
             consultar_modelo("pregunta de prueba")
 
@@ -174,10 +172,10 @@ def test_consultar_modelo_devuelve_texto_y_registra_costo():
     respuesta = {"respuesta_simulada": True}
 
     with (
-        patch("cliente.armar_peticion", return_value=("url", {"body": "test"})),
-        patch("cliente.con_reintento", return_value=respuesta) as reintentar,
-        patch("cliente.registrar_costo") as registrar,
-        patch("cliente.extraer_texto", return_value="texto generado") as extraer,
+        patch("src.cliente.armar_peticion", return_value=("url", {"body": "test"})),
+        patch("src.cliente.con_reintento", return_value=respuesta) as reintentar,
+        patch("src.cliente.registrar_costo") as registrar,
+        patch("src.cliente.extraer_texto", return_value="texto generado") as extraer,
     ):
         resultado = cliente.consultar_modelo("pregunta de prueba")
 
@@ -185,3 +183,22 @@ def test_consultar_modelo_devuelve_texto_y_registra_costo():
     reintentar.assert_called_once()
     registrar.assert_called_once_with(respuesta)
     extraer.assert_called_once_with(respuesta)
+
+@pytest.mark.parametrize("total_tokens", [-1, 1.5, "100", None])
+def test_calcular_costos_rechaza_total_tokens_invalido(total_tokens):
+    datos = {
+        "usageMetadata": {
+            "promptTokenCount": 10,
+            "candidatesTokenCount": 5,
+            "totalTokenCount": total_tokens,
+        }
+    }
+
+    with pytest.raises(RuntimeError, match="números enteros no negativos"):
+        calcular_costos(datos, 0.000001, 0.000002)
+
+
+@pytest.mark.parametrize("texto", ["[]", '"texto"', "null", "12"])
+def test_parsear_respuesta_json_rechaza_json_que_no_es_objeto(texto):
+    with pytest.raises(ValueError, match="debe ser un objeto"):
+        parsear_respuesta_json(texto)
