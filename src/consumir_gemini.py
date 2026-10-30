@@ -160,7 +160,12 @@ def calcular_costos(datos, precio_entrada, precio_salida):
     except KeyError:
         raise RuntimeError("Faltan los tokens de entrada o salida para calcular el costo.") from None
     tokens_razonamiento = uso.get("thoughtsTokenCount", 0)
-    for tokens in (tokens_entrada, tokens_salida, tokens_razonamiento):
+    for tokens in (
+        tokens_entrada, 
+        tokens_salida, 
+        tokens_razonamiento,
+        total_tokens,
+    ):
         if type(tokens) is not int or tokens < 0:
             raise RuntimeError("Los datos de tokens deben ser números enteros no negativos.")
     costo = (tokens_entrada * precio_entrada) + ((tokens_salida + tokens_razonamiento) * precio_salida)
@@ -170,15 +175,27 @@ def parsear_respuesta_json(texto, claves_esperadas=None):
     texto_limpio = texto.strip()
     texto_limpio = re.sub(r"^```(?:json)?\s*", "", texto_limpio)
     texto_limpio = re.sub(r"\s*```$", "", texto_limpio)
+
     try:
         datos = json.loads(texto_limpio)
     except json.JSONDecodeError:
-        raise ValueError("La respuesta del modelo no es JSON válido")
-    
+        raise ValueError(
+            "La respuesta del modelo no es JSON válido."
+        ) from None
+
+    if not isinstance(datos, dict):
+        raise ValueError("La respuesta JSON debe ser un objeto.")
+
     if claves_esperadas:
-        faltantes = [clave for clave in claves_esperadas if clave not in datos]
+        faltantes = [
+            clave for clave in claves_esperadas
+            if clave not in datos
+        ]
         if faltantes:
-            raise ValueError("La respuesta no tiene la estructura esperada.")
+            raise ValueError(
+                "La respuesta no tiene la estructura esperada."
+            )
+
     return datos
 
 if __name__ == "__main__":
