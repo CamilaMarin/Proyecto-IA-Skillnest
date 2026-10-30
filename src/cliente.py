@@ -3,7 +3,7 @@ import random
 
 from typing import Callable, Any
 
-from src.consumir_gemini import armar_peticion, extraer_texto, enviar_peticion,calcular_costos, MODELO, PRECIO_ENTRADA, PRECIO_SALIDA
+from .consumir_gemini import armar_peticion, extraer_texto, enviar_peticion,calcular_costos, MODELO, PRECIO_ENTRADA, PRECIO_SALIDA
 
 def con_reintento(
 	funcion: Callable[[], Any],
@@ -48,12 +48,12 @@ def consultar_modelo(pregunta: str, system_instruction: str = "") -> str:
     return extraer_texto(respuesta)
  
  
-if __name__ == "__main__":
-    for i in range(10):
-        try:
-            resultado = consultar_modelo(f"Dame un dato random en 15 o menos palabras", "")
-            print(f"Respuesta {i+1}: {resultado[:500]}")
-        except RuntimeError as error:
-            print(f"Respuesta {i+1} falló definitivamente: {error}")
-    print(f"Costo total del ensayo: ${costo_total_sesion:.5f}")
-    print(f"Total tokens del ensayo: {total_tokens_sesion}")
+# if __name__ == "__main__":
+#     for i in range(10):
+#         try:
+#             resultado = consultar_modelo(f"Dame un dato random en 15 o menos palabras", "")
+#             print(f"Respuesta {i+1}: {resultado[:500]}")
+#         except RuntimeError as error:
+#             print(f"Respuesta {i+1} falló definitivamente: {error}")
+#     print(f"Costo total del ensayo: ${costo_total_sesion:.5f}")
+#     print(f"Total tokens del ensayo: {total_tokens_sesion}")
