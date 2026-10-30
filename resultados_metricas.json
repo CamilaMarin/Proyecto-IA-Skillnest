@@ -1,0 +1,23 @@
+[
+  {
+    "consulta": "¿Cuándo se creó Python?",
+    "respuesta": "Python fue creado oficialmente en el año mil novecientos noventa y uno.",
+    "precision": 0.3333333333333333,
+    "cobertura": 0.8,
+    "f1": 0.47058823529411764
+  },
+  {
+    "consulta": "¿Qué es Python?",
+    "respuesta": "Python es un lenguaje de programación de alto nivel, interpretado y de propósito general.",
+    "precision": 0.5,
+    "cobertura": 1.0,
+    "f1": 0.6666666666666666
+  },
+  {
+    "consulta": "¿Qué es una lista en Python?",
+    "respuesta": "Una lista en Python es una colección ordenada y modificable de elementos.",
+    "precision": 0.6666666666666666,
+    "cobertura": 1.0,
+    "f1": 0.8
+  }
+]
