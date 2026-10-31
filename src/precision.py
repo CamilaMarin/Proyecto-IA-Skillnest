@@ -8,25 +8,171 @@ from .pipeline_limpieza import procesar_texto
 
 CASOS = [
     {
-        "id": "python_que_es",
-        "consulta": "¿Qué es Python?",
-        "referencia": "Python es un lenguaje de programación interpretado.",
+        "id": "rhythmmentor_01_instrumento",
+        "consulta": (
+            "Soy principiante y practico batería electrónica. "
+            "¿Qué instrumento debo registrar?"
+        ),
+        "referencia": "Batería electrónica.",
     },
     {
-        "id": "python_fecha",
-        "consulta": "¿Cuándo se creó Python?",
-        "referencia": "Python fue creado en 1991.",
+        "id": "rhythmmentor_02_nivel",
+        "consulta": (
+            "Mi nivel es principiante y estoy empezando a practicar batería. "
+            "¿Qué nivel debes registrar?"
+        ),
+        "referencia": "Principiante.",
     },
     {
-        "id": "python_lista",
-        "consulta": "¿Qué es una lista en Python?",
-        "referencia": "Una lista es una colección ordenada y modificable.",
+        "id": "rhythmmentor_03_duracion_real",
+        "consulta": (
+            "Practiqué durante 8 minutos. ¿Cuál fue la duración real "
+            "de mi práctica?"
+        ),
+        "referencia": "La duración real fue de 8 minutos.",
+    },
+    {
+        "id": "rhythmmentor_04_tempo",
+        "consulta": (
+            "Practiqué con el metrónomo a 60 BPM. ¿Qué tempo utilicé?"
+        ),
+        "referencia": "El tempo utilizado fue de 60 BPM.",
+    },
+    {
+        "id": "rhythmmentor_05_objetivo",
+        "consulta": (
+            "Quiero practicar coordinación entre manos y pies. "
+            "¿Cuál es mi objetivo?"
+        ),
+        "referencia": "Mejorar la coordinación entre manos y pies.",
+    },
+    {
+        "id": "rhythmmentor_06_dificultad_pie",
+        "consulta": (
+            "Al tocar, me adelanté al usar el pie izquierdo. "
+            "¿Qué dificultad reporté?"
+        ),
+        "referencia": "Me adelanté al usar el pie izquierdo.",
+    },
+    {
+        "id": "rhythmmentor_07_sesion_completada",
+        "consulta": (
+            "Terminé el ejercicio de coordinación. "
+            "¿Debo registrar la sesión como completada?"
+        ),
+        "referencia": "Sí, la sesión se completó.",
+    },
+    {
+        "id": "rhythmmentor_08_sin_molestias",
+        "consulta": (
+            "Terminé la práctica y no sentí dolor ni molestias. "
+            "¿Reporté alguna molestia?"
+        ),
+        "referencia": "No, no reporté dolor ni molestias.",
+    },
+    {
+        "id": "rhythmmentor_09_duracion_sesion",
+        "consulta": (
+            "Tengo 20 minutos disponibles para una sesión. "
+            "¿Cuánto debe durar en total?"
+        ),
+        "referencia": "La sesión debe durar exactamente 20 minutos.",
+    },
+    {
+        "id": "rhythmmentor_10_suma_ejercicios",
+        "consulta": (
+            "Diseña tres ejercicios para una práctica de 12 minutos. "
+            "¿Cuánto deben sumar sus duraciones?"
+        ),
+        "referencia": "Las duraciones de los tres ejercicios deben sumar 12 minutos.",
+    },
+    {
+        "id": "rhythmmentor_11_tempo_inicial",
+        "consulta": (
+            "Soy principiante y mi tempo inicial es 60 BPM. "
+            "¿A qué tempo comienza la práctica?"
+        ),
+        "referencia": "La práctica comienza a 60 BPM.",
+    },
+    {
+        "id": "rhythmmentor_12_progresion_gradual",
+        "consulta": (
+            "¿Cómo debería aumentar la dificultad de mis ejercicios "
+            "de batería?"
+        ),
+        "referencia": "Aumenta la dificultad de forma gradual.",
+    },
+    {
+        "id": "rhythmmentor_13_historial_hi_hat",
+        "consulta": (
+            "En mis últimas sesiones pude mantener el hi-hat con la mano "
+            "derecha. ¿Qué logré mantener?"
+        ),
+        "referencia": "Mantuve el hi-hat con la mano derecha.",
+    },
+    {
+        "id": "rhythmmentor_14_historial_pie_izquierdo",
+        "consulta": (
+            "En la última práctica me adelanté al coordinar el bombo "
+            "con el pie izquierdo. ¿Qué debo trabajar?"
+        ),
+        "referencia": "Debo trabajar la coordinación del bombo con el pie izquierdo.",
+    },
+    {
+        "id": "rhythmmentor_15_registro_bateria_electronica",
+        "consulta": (
+            "Registra esta práctica: usé una batería electrónica "
+            "durante 8 minutos."
+        ),
+        "referencia": "Instrumento: batería electrónica. Duración: 8 minutos.",
+    },
+    {
+        "id": "rhythmmentor_16_registro_tempo_y_nivel",
+        "consulta": (
+            "Registra mi sesión: soy principiante y practiqué a 60 BPM."
+        ),
+        "referencia": "Nivel: principiante. Tempo: 60 BPM.",
+    },
+    {
+        "id": "rhythmmentor_17_no_inferir_duracion",
+        "consulta": (
+            "Practiqué coordinación en batería, pero no recuerdo "
+            "cuántos minutos. ¿Qué duración real debes registrar?"
+        ),
+        "referencia": "No se indicó la duración real.",
+    },
+    {
+        "id": "rhythmmentor_18_molestia_explicita",
+        "consulta": (
+            "Durante la práctica sentí dolor en la muñeca. "
+            "¿Debo registrar que reporté una molestia?"
+        ),
+        "referencia": "Sí, se reportó una molestia.",
+    },
+    {
+        "id": "rhythmmentor_19_no_aumento_bruso",
+        "consulta": (
+            "Me cuesta coordinar el pie izquierdo. "
+            "¿Debería duplicar de inmediato el tempo de 60 a 120 BPM?"
+        ),
+        "referencia": "No; la dificultad y el tempo deben aumentar gradualmente.",
+    },
+    {
+        "id": "rhythmmentor_20_no_inferir_completado",
+        "consulta": (
+            "Registré una práctica, pero no dije si terminé el ejercicio. "
+            "¿Debes marcarla como completada?"
+        ),
+        "referencia": "No; solo se marca completada si la persona confirma que terminó.",
     },
 ]
 
 INSTRUCCION_SISTEMA = (
-    "Responde en español con una definición breve, en una sola oración "
-    "de máximo 15 palabras. Sin listas, ejemplos ni introducciones."
+    "Eres RhythmMentor, un asistente de práctica de batería electrónica "
+    "para principiantes. Responde brevemente en español y contesta lo "
+    "preguntado usando los datos explícitos del caso. No inventes datos. "
+    "Respeta las duraciones y los BPM indicados, recomienda progresiones "
+    "graduales y no infieras molestias si no se reportan explícitamente."
 )
 
 
