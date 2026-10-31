@@ -44,18 +44,20 @@ def test_enviar_peticion_error_servidor(status_code):
             )
 
 @pytest.mark.parametrize(
-    "error",
+    "error, excepcion_esperada",
     [
-        requests.exceptions.ConnectionError("sin conexión"),
-        requests.exceptions.Timeout("tiempo agotado"),
+        (requests.exceptions.ConnectionError("sin conexión"), RuntimeError,
+        ),
+        (requests.exceptions.Timeout("tiempo agotado"), TimeoutError,
+        ),
     ],
 )
-def test_enviar_peticion_error_de_conexion(error):
+def test_enviar_peticion_error_de_conexion(error, excepcion_esperada):
     with patch(
         "src.consumir_gemini.requests.post",
         side_effect=error,
     ):
-        with pytest.raises(RuntimeError):
+        with pytest.raises(excepcion_esperada):
             enviar_peticion(
                 "https://ejemplo.invalid",
                 {"pregunta": "test"},
