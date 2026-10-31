@@ -6,6 +6,30 @@ from .cliente import consultar_modelo
 from .pipeline_limpieza import procesar_texto
 
 
+CASOS = [
+    {
+        "id": "python_que_es",
+        "consulta": "¿Qué es Python?",
+        "referencia": "Python es un lenguaje de programación interpretado.",
+    },
+    {
+        "id": "python_fecha",
+        "consulta": "¿Cuándo se creó Python?",
+        "referencia": "Python fue creado en 1991.",
+    },
+    {
+        "id": "python_lista",
+        "consulta": "¿Qué es una lista en Python?",
+        "referencia": "Una lista es una colección ordenada y modificable.",
+    },
+]
+
+INSTRUCCION_SISTEMA = (
+    "Responde en español con una definición breve, en una sola oración "
+    "de máximo 15 palabras. Sin listas, ejemplos ni introducciones."
+)
+
+
 def contar_coincidencias(
     tokens_referencia: list[str],
     tokens_respuesta: list[str],
@@ -81,48 +105,104 @@ def resumir_metricas(resultados: list[dict]) -> dict[str, float]:
     }
 
 
-def ejecutar_evaluacion() -> list[dict]:
-    casos = [
-        (
-            "¿Qué es Python?",
-            "Python es un lenguaje de programación interpretado.",
-        ),
-        (
-            "¿Cuándo se creó Python?",
-            "Python fue creado en 1991.",
-        ),
-        (
-            "¿Qué es una lista en Python?",
-            "Una lista es una colección ordenada y modificable.",
-        ),
-    ]
+def guardar_resultados(
+    resultados: list[dict],
+    ruta_resultados: Path,
+) -> None:
+    """Guarda los resultados de forma atómica para conservar el avance."""
+    ruta_temporal = ruta_resultados.with_suffix(
+        ruta_resultados.suffix + ".tmp"
+    )
 
-    resultados = []
+    with ruta_temporal.open("w", encoding="utf-8") as archivo:
+        json.dump(
+            resultados,
+            archivo,
+            indent=2,
+            ensure_ascii=False,
+        )
+        archivo.flush()
 
-    for consulta, referencia in casos:
-        respuesta = consultar_modelo(
-            consulta,
-            system_instruction=(
-                "Responde en español con una definición breve, en una sola "
-                "oración de máximo 15 palabras. Sin listas, ejemplos ni "
-                "introducciones."
-            ),
+    ruta_temporal.replace(ruta_resultados)
+
+
+def cargar_resultados(
+    ruta_resultados: Path,
+    casos: list[dict],
+) -> tuple[list[dict], bool]:
+    """Carga resultados previos y añade IDs a registros antiguos compatibles."""
+    if not ruta_resultados.exists():
+        return [], False
+
+    with ruta_resultados.open("r", encoding="utf-8-sig") as archivo:
+        guardados = json.load(archivo)
+
+    if not isinstance(guardados, list):
+        raise ValueError(
+            "El archivo de resultados debe contener una lista JSON."
         )
 
-        metricas = calcular_metricas(referencia, respuesta)
+    por_id = {caso["id"]: caso for caso in casos}
+    por_consulta_referencia = {
+        (caso["consulta"], caso["referencia"]): caso
+        for caso in casos
+    }
 
-        print("Consulta:", consulta)
-        print("Respuesta:", respuesta)
-        print("Métricas:", metricas)
+    resultados = []
+    ids_vistos = set()
+    migrado = False
 
-        resultados.append({
-            "consulta": consulta,
-            "respuesta": respuesta,
-            **metricas,
-        })
+    for resultado in guardados:
+        if not isinstance(resultado, dict):
+            raise ValueError(
+                "El archivo contiene un resultado que no es un objeto JSON."
+            )
 
-    resultados.sort(key=lambda resultado: resultado["f1"])
+        caso = None
 
+        if "id" in resultado:
+            candidato = por_id.get(resultado["id"])
+            if (
+                candidato is not None
+                and resultado.get("consulta") == candidato["consulta"]
+                and resultado.get("referencia") == candidato["referencia"]
+            ):
+                caso = candidato
+        else:
+            caso = por_consulta_referencia.get(
+                (
+                    resultado.get("consulta"),
+                    resultado.get("referencia"),
+                )
+            )
+
+        if caso is None:
+            raise ValueError(
+                "El archivo contiene resultados de otros casos o de otra "
+                "evaluación. Archívalo antes de cambiar la lista CASOS."
+            )
+
+        if caso["id"] in ids_vistos:
+            raise ValueError(
+                f"El caso {caso['id']} aparece duplicado en los resultados."
+            )
+
+        resultado_normalizado = {
+            **resultado,
+            "id": caso["id"],
+            "consulta": caso["consulta"],
+            "referencia": caso["referencia"],
+        }
+        if "id" not in resultado:
+            migrado = True
+
+        resultados.append(resultado_normalizado)
+        ids_vistos.add(caso["id"])
+
+    return resultados, migrado
+
+
+def ejecutar_evaluacion() -> list[dict]:
     ruta_resultados = (
         Path(__file__).resolve().parent.parent
         / "docs"
@@ -130,15 +210,68 @@ def ejecutar_evaluacion() -> list[dict]:
     )
     ruta_resultados.parent.mkdir(parents=True, exist_ok=True)
 
-    with ruta_resultados.open("w", encoding="utf-8") as archivo:
-        json.dump(resultados, archivo, indent=2, ensure_ascii=False)
+    resultados, migrado = cargar_resultados(ruta_resultados, CASOS)
 
-    print("Promedios:", resumir_metricas(resultados))
+    if migrado:
+        guardar_resultados(resultados, ruta_resultados)
+        print("Se agregaron IDs a resultados guardados anteriormente.")
+
+    ids_completados = {
+        resultado["id"]
+        for resultado in resultados
+    }
+
+    for numero, caso in enumerate(CASOS, start=1):
+        if caso["id"] in ids_completados:
+            print(f"Ya guardado {numero}/{len(CASOS)}: {caso['consulta']}")
+            continue
+
+        print(f"\nGenerando caso {numero}/{len(CASOS)}: {caso['consulta']}")
+
+        try:
+            respuesta = consultar_modelo(
+                caso["consulta"],
+                system_instruction=INSTRUCCION_SISTEMA,
+            )
+        except (RuntimeError, ValueError, TimeoutError) as error:
+            print("Se detuvo la generación:", error)
+            print(f"Respuestas conservadas: {len(resultados)}")
+            break
+
+        metricas = calcular_metricas(
+            caso["referencia"],
+            respuesta,
+        )
+
+        resultado = {
+            "id": caso["id"],
+            "consulta": caso["consulta"],
+            "referencia": caso["referencia"],
+            "respuesta": respuesta,
+            **metricas,
+        }
+
+        resultados.append(resultado)
+        ids_completados.add(caso["id"])
+
+        # Se guarda después de cada llamada exitosa para poder reanudar.
+        guardar_resultados(resultados, ruta_resultados)
+
+        print("Respuesta:", respuesta)
+        print("Métricas:", metricas)
+        print(f"Guardadas: {len(resultados)}/{len(CASOS)}")
+
+    orden_casos = {
+        caso["id"]: numero
+        for numero, caso in enumerate(CASOS)
+    }
+    resultados.sort(key=lambda resultado: orden_casos[resultado["id"]])
+
+    if resultados:
+        guardar_resultados(resultados, ruta_resultados)
+
+    print("\nPromedios:", resumir_metricas(resultados))
     print("Resultados guardados en:", ruta_resultados)
-
-    print("Casos con menor F1:")
-    for caso in resultados[:3]:
-        print(caso["consulta"], caso["f1"])
 
     return resultados
 
