@@ -1,23 +1,182 @@
 [
   {
-    "consulta": "¿Cuándo se creó Python?",
-    "respuesta": "Python fue creado oficialmente en el año 1991 por Guido van Rossum.",
-    "precision": 0.4166666666666667,
+    "id": "rhythmmentor_01_instrumento",
+    "consulta": "Soy principiante y practico batería electrónica. ¿Qué instrumento debo registrar?",
+    "referencia": "Batería electrónica.",
+    "respuesta": "Debes registrar la batería electrónica.",
+    "precision": 0.4,
     "cobertura": 1.0,
-    "f1": 0.5882352941176471
+    "f1": 0.5714285714285715
   },
   {
-    "consulta": "¿Qué es Python?",
-    "respuesta": "Python es un lenguaje de programación de alto nivel, interpretado y de propósito general.",
+    "id": "rhythmmentor_02_nivel",
+    "consulta": "Mi nivel es principiante y estoy empezando a practicar batería. ¿Qué nivel debes registrar?",
+    "referencia": "Principiante.",
+    "respuesta": "Debo registrar el nivel de **principiante**.",
+    "precision": 0.16666666666666666,
+    "cobertura": 1.0,
+    "f1": 0.2857142857142857
+  },
+  {
+    "id": "rhythmmentor_03_duracion_real",
+    "consulta": "Practiqué durante 8 minutos. ¿Cuál fue la duración real de mi práctica?",
+    "referencia": "La duración real fue de 8 minutos.",
+    "respuesta": "La duración real de tu práctica fue de 8 minutos.",
+    "precision": 0.7,
+    "cobertura": 1.0,
+    "f1": 0.8235294117647058
+  },
+  {
+    "id": "rhythmmentor_04_tempo",
+    "consulta": "Practiqué con el metrónomo a 60 BPM. ¿Qué tempo utilicé?",
+    "referencia": "El tempo utilizado fue de 60 BPM.",
+    "respuesta": "Utilizaste un tempo de 60 BPM.",
+    "precision": 0.6666666666666666,
+    "cobertura": 0.5714285714285714,
+    "f1": 0.6153846153846153
+  },
+  {
+    "id": "rhythmmentor_05_objetivo",
+    "consulta": "Quiero practicar coordinación entre manos y pies. ¿Cuál es mi objetivo?",
+    "referencia": "Mejorar la coordinación entre manos y pies.",
+    "respuesta": "Tu objetivo es practicar coordinación entre manos y pies. Para lograrlo de forma efectiva, te recomiendo una progresión gradual, comenzando a tempos lentos (por ejemplo, 60-70 BPM) y aumentando la velocidad poco a poco conforme domines el ejercicio.",
+    "precision": 0.15789473684210525,
+    "cobertura": 0.8571428571428571,
+    "f1": 0.26666666666666666
+  },
+  {
+    "id": "rhythmmentor_06_dificultad_pie",
+    "consulta": "Al tocar, me adelanté al usar el pie izquierdo. ¿Qué dificultad reporté?",
+    "referencia": "Me adelanté al usar el pie izquierdo.",
+    "respuesta": "Reportaste que te adelantaste al usar el pie izquierdo al tocar.",
+    "precision": 0.45454545454545453,
+    "cobertura": 0.7142857142857143,
+    "f1": 0.5555555555555556
+  },
+  {
+    "id": "rhythmmentor_07_sesion_completada",
+    "consulta": "Terminé el ejercicio de coordinación. ¿Debo registrar la sesión como completada?",
+    "referencia": "Sí, la sesión se completó.",
+    "respuesta": "¡Hola! Sí, registra la sesión como completada. ¡Buen trabajo!",
+    "precision": 0.3333333333333333,
+    "cobertura": 0.6,
+    "f1": 0.42857142857142855
+  },
+  {
+    "id": "rhythmmentor_08_sin_molestias",
+    "consulta": "Terminé la práctica y no sentí dolor ni molestias. ¿Reporté alguna molestia?",
+    "referencia": "No, no reporté dolor ni molestias.",
+    "respuesta": "No, no reportaste ninguna molestia.",
+    "precision": 0.4,
+    "cobertura": 0.3333333333333333,
+    "f1": 0.3636363636363636
+  },
+  {
+    "id": "rhythmmentor_09_duracion_sesion",
+    "consulta": "Tengo 20 minutos disponibles para una sesión. ¿Cuánto debe durar en total?",
+    "referencia": "La sesión debe durar exactamente 20 minutos.",
+    "respuesta": "La sesión debe durar exactamente 20 minutos en total, según el tiempo disponible que indicaste.",
+    "precision": 0.4666666666666667,
+    "cobertura": 1.0,
+    "f1": 0.6363636363636364
+  },
+  {
+    "id": "rhythmmentor_10_suma_ejercicios",
+    "consulta": "Diseña tres ejercicios para una práctica de 12 minutos. ¿Cuánto deben sumar sus duraciones?",
+    "referencia": "Las duraciones de los tres ejercicios deben sumar 12 minutos.",
+    "respuesta": "¡Hola! Como RhythmMentor, aquí tienes tus tres ejercicios para 12 minutos a 60 BPM. \n\n**Duración total:** Sus duraciones deben sumar exactamente 12 minutos.\n\n**Ejercicios:**\n1. **Negras básicas:** 4 minutos a 60 BPM (golpea el pad de caja en cada tiempo).\n2. **Negras con bombo:** 4 minutos a 60 BPM (combina caja y bombo en negras).\n3. **Alternando manos:** 4 minutos a 60 BPM (practica golpes simples Derecha-Izquierda).\n\nProgresión gradual: mantén los 60 BPM en los tres ejercicios. ¡A practicar!",
+    "precision": 0.11392405063291139,
+    "cobertura": 0.9,
+    "f1": 0.20224719101123595
+  },
+  {
+    "id": "rhythmmentor_11_tempo_inicial",
+    "consulta": "Soy principiante y mi tempo inicial es 60 BPM. ¿A qué tempo comienza la práctica?",
+    "referencia": "La práctica comienza a 60 BPM.",
+    "respuesta": "El tempo con el que comienza la práctica es a 60 BPM.",
     "precision": 0.5,
     "cobertura": 1.0,
     "f1": 0.6666666666666666
   },
   {
-    "consulta": "¿Qué es una lista en Python?",
-    "respuesta": "Una lista en Python es una colección ordenada y modificable de elementos.",
-    "precision": 0.6666666666666666,
-    "cobertura": 1.0,
-    "f1": 0.8
+    "id": "rhythmmentor_12_progresion_gradual",
+    "consulta": "¿Cómo debería aumentar la dificultad de mis ejercicios de batería?",
+    "referencia": "Aumenta la dificultad de forma gradual.",
+    "respuesta": "Para aumentar la dificultad de tus ejercicios de batería, hazlo de forma gradual:\n\n1. **Incrementa el tempo:** Sube la velocidad en pequeños incrementos de **5 a 10 BPM** cuando domines el ejercicio actual.\n2. **Complejidad rítmica:** Añade notas fantasmas, síncopas o cambia entre rudimentos básicos.\n3. **Independencia:** Introduce variaciones en el bombo o el platillo ride mientras mantienes el patrón principal.",
+    "precision": 0.08196721311475409,
+    "cobertura": 0.8333333333333334,
+    "f1": 0.14925373134328357
+  },
+  {
+    "id": "rhythmmentor_13_historial_hi_hat",
+    "consulta": "En mis últimas sesiones pude mantener el hi-hat con la mano derecha. ¿Qué logré mantener?",
+    "referencia": "Mantuve el hi-hat con la mano derecha.",
+    "respuesta": "Lograste mantener el hi-hat con la mano derecha.",
+    "precision": 0.75,
+    "cobertura": 0.8571428571428571,
+    "f1": 0.7999999999999999
+  },
+  {
+    "id": "rhythmmentor_14_historial_pie_izquierdo",
+    "consulta": "En la última práctica me adelanté al coordinar el bombo con el pie izquierdo. ¿Qué debo trabajar?",
+    "referencia": "Debo trabajar la coordinación del bombo con el pie izquierdo.",
+    "respuesta": "Debes trabajar el uso del metrónomo a una velocidad lenta (BPM bajos) y practicar la coordinación del bombo con el pie izquierdo de forma aislada. Sube la velocidad gradualmente solo cuando domines el ritmo base.",
+    "precision": 0.2571428571428571,
+    "cobertura": 0.9,
+    "f1": 0.39999999999999997
+  },
+  {
+    "id": "rhythmmentor_15_registro_bateria_electronica",
+    "consulta": "Registra esta práctica: usé una batería electrónica durante 8 minutos.",
+    "referencia": "Instrumento: batería electrónica. Duración: 8 minutos.",
+    "respuesta": "Sesión registrada: 8 minutos en batería electrónica. ¡Buen trabajo! \n\nPara tu siguiente práctica, te sugiero una progresión gradual aumentando el tiempo a 10 minutos. Continúa practicando.",
+    "precision": 0.15384615384615385,
+    "cobertura": 0.6666666666666666,
+    "f1": 0.25
+  },
+  {
+    "id": "rhythmmentor_16_registro_tempo_y_nivel",
+    "consulta": "Registra mi sesión: soy principiante y practiqué a 60 BPM.",
+    "referencia": "Nivel: principiante. Tempo: 60 BPM.",
+    "respuesta": "Sesión registrada: principiante a 60 BPM. ¡Buen inicio! Para continuar, te recomiendo una progresión gradual aumentando de 5 en 5 BPM en tus próximas prácticas.",
+    "precision": 0.12,
+    "cobertura": 0.6,
+    "f1": 0.19999999999999998
+  },
+  {
+    "id": "rhythmmentor_17_no_inferir_duracion",
+    "consulta": "Practiqué coordinación en batería, pero no recuerdo cuántos minutos. ¿Qué duración real debes registrar?",
+    "referencia": "No se indicó la duración real.",
+    "respuesta": "No tengo el dato de cuántos minutos practicaste. Por favor, indícame la duración exacta para registrarla.",
+    "precision": 0.1875,
+    "cobertura": 0.5,
+    "f1": 0.2727272727272727
+  },
+  {
+    "id": "rhythmmentor_18_molestia_explicita",
+    "consulta": "Durante la práctica sentí dolor en la muñeca. ¿Debo registrar que reporté una molestia?",
+    "referencia": "Sí, se reportó una molestia.",
+    "respuesta": "Sí, debes registrar que reportaste dolor en la muñeca.",
+    "precision": 0.1111111111111111,
+    "cobertura": 0.2,
+    "f1": 0.14285714285714285
+  },
+  {
+    "id": "rhythmmentor_19_no_aumento_bruso",
+    "consulta": "Me cuesta coordinar el pie izquierdo. ¿Debería duplicar de inmediato el tempo de 60 a 120 BPM?",
+    "referencia": "No; la dificultad y el tempo deben aumentar gradualmente.",
+    "respuesta": "No, no debes duplicar el tempo de inmediato. Te recomiendo una progresión gradual, aumentando de 5 en 5 BPM desde los 60 BPM actuales, manteniendo cada velocidad hasta dominarla.",
+    "precision": 0.10344827586206896,
+    "cobertura": 0.3333333333333333,
+    "f1": 0.15789473684210528
+  },
+  {
+    "id": "rhythmmentor_20_no_inferir_completado",
+    "consulta": "Registré una práctica, pero no dije si terminé el ejercicio. ¿Debes marcarla como completada?",
+    "referencia": "No; solo se marca completada si la persona confirma que terminó.",
+    "respuesta": "No, no debes marcarla como completada si no se indicó explícitamente que terminaste el ejercicio.",
+    "precision": 0.3333333333333333,
+    "cobertura": 0.45454545454545453,
+    "f1": 0.3846153846153846
   }
 ]

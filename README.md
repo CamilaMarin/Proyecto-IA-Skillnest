@@ -146,9 +146,20 @@ El programa envía una pregunta de ejemplo al modelo y compara sus tokens con un
 python -m src.precision
 ```
 
-El programa consulta al modelo con tres casos de ejemplo, calcula métricas de coincidencia entre los tokens de cada respuesta y su referencia y guarda las respuestas y métricas en docs/resultados_metricas.json. Cada ejecución sobrescribe ese archivo.
+El programa evalúa 20 casos relacionados con RhythmMentor. Para cada consulta, guarda la referencia, la respuesta generada y sus métricas de precisión, cobertura y F1 en docs/resultados_metricas.json.
 
-Estas métricas comparan palabras y sus frecuencias. No miden por sí solas si una respuesta es semánticamente correcta ni si un ejercicio musical es adecuado.
+Los resultados se guardan después de cada respuesta. Si la ejecución se interrumpe, al volver a ejecutar el comando se omiten los casos que ya tienen resultado y se continúa con los pendientes. Las solicitudes a Gemini pueden generar costos.
+
+Estas métricas comparan palabras y sus frecuencias. No determinan por sí solas si una respuesta es semánticamente correcta ni si una recomendación musical es adecuada.
+
+### Revisar resultados manualmente
+
+```bash
+python -m src.revision_manual
+```
+El programa selecciona los cinco casos con menor F1 y los cinco con mayor F1. Para cada uno solicita una valoración de corrección factual, completitud y contradicción, además de una nota justificativa.
+
+La revisión se guarda en docs/revision_manual.json. Deben existir al menos 20 resultados en docs/resultados_metricas.json antes de iniciar la revisión.
 
 ## Estructura del proyecto
 
@@ -157,8 +168,10 @@ Estas métricas comparan palabras y sus frecuencias. No miden por sí solas si u
 ├── docs/
 │   ├── comparativas de modelos
 │   ├── decisión y diagramas de arquitectura
+│   ├── limites_metrica.md
+│   ├── registro_rate_limit.md
 │   ├── resultados_metricas.json
-│   └── registro_rate_limit.md
+│   └── revision_manual.json
 ├── src/
 │   ├── cliente.py
 │   ├── comparar_modelos.py
@@ -167,6 +180,7 @@ Estas métricas comparan palabras y sus frecuencias. No miden por sí solas si u
 │   ├── pipeline_limpieza.py
 │   ├── pipeline_texto.py
 │   ├── precision.py
+│   ├── revision_manual.py
 │   └── prompts/
 │       ├── banco.py
 │       └── registro_resultados.json
@@ -181,19 +195,23 @@ Estas métricas comparan palabras y sus frecuencias. No miden por sí solas si u
 └── requirements.txt
 ```
 
-- src/consumir_gemini.py: construye y envía solicitudes a Gemini, extrae respuestas, mide latencia, calcula costos y valida respuestas JSON.
-- src/cliente.py: ofrece funciones para consultar el modelo, reintentar ante TimeoutError y acumular costo y tokens de la sesión.
-- src/prompts/banco.py: contiene prompts de RhythmMentor, instrucciones de sistema, ejemplos, claves esperadas y esquemas de respuesta.
-- src/consistencia.py: ejecuta los prompts del banco y registra cuántas respuestas pasan la validación de formato y claves.
-- src/comparar_modelos.py: compara respuestas, latencia y costo estimado y guarda un informe con las respuestas en docs/.
-- src/pipeline_limpieza.py: normaliza texto y lo convierte en tokens.
-- src/pipeline_texto.py: compara coincidencias de tokens en un ejemplo de texto crudo y procesado.
-- src/precision.py: calcula precisión, cobertura y F1 sobre tokens, ejecuta casos de ejemplo y guarda los resultados en docs/resultados_metricas.json.
-- tests/: contiene pruebas automatizadas del cliente, del procesamiento de texto y de las métricas.
-- pytest.ini: indica dónde buscar las pruebas al ejecutar pytest.
-- requirements.txt: contiene las dependencias necesarias para instalar el proyecto.
-- .env.example: plantilla de variables de entorno sin credenciales reales.
-- .gitignore: indica a Git qué archivos debe ignorar, incluidos .env y el entorno virtual.
+- `src/consumir_gemini.py`: construye y envía solicitudes a Gemini, extrae respuestas, mide latencia, calcula costos y valida respuestas JSON.
+- `src/cliente.py`: ofrece funciones para consultar el modelo, reintentar ante TimeoutError y acumular costo y tokens de la sesión.
+- `src/prompts/banco.py`: contiene prompts de RhythmMentor, instrucciones de sistema, ejemplos, claves esperadas y esquemas de respuesta.
+- `src/consistencia.py`: ejecuta los prompts del banco y registra cuántas respuestas pasan la validación de formato y claves.
+- `src/comparar_modelos.py`: compara respuestas, latencia y costo estimado y guarda un informe con las respuestas en docs/.
+- `src/pipeline_limpieza.py`: normaliza texto y lo convierte en tokens.
+- `src/pipeline_texto.py`: compara coincidencias de tokens en un ejemplo de texto crudo y procesado.
+- `src/precision.py`: calcula precisión, cobertura y F1 sobre tokens, ejecuta casos y guarda los resultados en `docs/resultados_metricas.json`.
+- `src/revision_manual.py`: permite revisar los diez resultados seleccionados con la rúbrica cualitativa.
+- `docs/revision_manual.json`: conserva las valoraciones y notas de la revisión manual.
+- `docs/limites_metrica.md`: describe qué mide F1, los límites observados en la muestra y cómo usar la métrica.
+- `docs/resultados_metricas.json`: conserva las 20 consultas, referencias, respuestas y métricas de la evaluación.
+- `tests/`: contiene pruebas automatizadas del cliente, del procesamiento de texto y de las métricas.
+- `pytest.ini`: indica dónde buscar las pruebas al ejecutar pytest.
+- `requirements.txt`: contiene las dependencias necesarias para instalar el proyecto.
+- `.env.example`: plantilla de variables de entorno sin credenciales reales.
+- `.gitignore`: indica a Git qué archivos debe ignorar, incluidos .env y el entorno virtual.
 
 ## Seguridad y credenciales
 
