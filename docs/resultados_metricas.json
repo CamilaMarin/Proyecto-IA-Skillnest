@@ -1,10 +1,10 @@
 [
   {
     "consulta": "¿Cuándo se creó Python?",
-    "respuesta": "Python fue creado oficialmente en el año mil novecientos noventa y uno.",
-    "precision": 0.3333333333333333,
-    "cobertura": 0.8,
-    "f1": 0.47058823529411764
+    "respuesta": "Python fue creado oficialmente en el año 1991 por Guido van Rossum.",
+    "precision": 0.4166666666666667,
+    "cobertura": 1.0,
+    "f1": 0.5882352941176471
   },
   {
     "consulta": "¿Qué es Python?",
