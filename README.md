@@ -15,6 +15,7 @@ La arquitectura puede adaptarse para consumir APIs de distintos proveedores de m
 - Terminal en macOS/Linux o PowerShell en Windows.
 
 Las solicitudes a la API pueden estar sujetas a límites o costos según la cuenta y las condiciones del proveedor.
+
 ## Cómo empezar
 
 Ejecuta los comandos desde la raíz del repositorio.
@@ -161,6 +162,15 @@ El programa selecciona los cinco casos con menor F1 y los cinco con mayor F1. Pa
 
 La revisión se guarda en docs/revision_manual.json. Deben existir al menos 20 resultados en docs/resultados_metricas.json antes de iniciar la revisión.
 
+### Diseñar una sesión de práctica con LangChain
+
+```bash
+python -m src.cadena_tres_pasos
+```
+La cadena procesa una solicitud de RhythmMentor en tres pasos: extrae el nivel, el objetivo, la duración y el BPM; diseña una sesión; y revisa el plan frente a los requisitos originales. La respuesta se muestra en la consola.
+
+Cada ejecución realiza tres llamadas a Gemini y puede estar sujeta a límites o costos de la cuenta. La prueba automatizada usa un modelo simulado y no consume llamadas a la API.
+
 ## Estructura del proyecto
 
 ```text
@@ -173,6 +183,7 @@ La revisión se guarda en docs/revision_manual.json. Deben existir al menos 20 r
 │   ├── resultados_metricas.json
 │   └── revision_manual.json
 ├── src/
+│   ├── cadena_tres_pasos.py
 │   ├── cliente.py
 │   ├── comparar_modelos.py
 │   ├── consistencia.py
@@ -185,6 +196,7 @@ La revisión se guarda en docs/revision_manual.json. Deben existir al menos 20 r
 │       ├── banco.py
 │       └── registro_resultados.json
 ├── tests/
+│   ├── test_cadena_tres_pasos.py
 │   ├── test_cliente.py
 │   ├── test_pipeline.py
 │   └── test_precision.py
@@ -194,7 +206,7 @@ La revisión se guarda en docs/revision_manual.json. Deben existir al menos 20 r
 ├── README.md
 └── requirements.txt
 ```
-
+- `src/cadena_tres_pasos.py`: construye y ejecuta una cadena LangChain que extrae los requisitos de una sesión, diseña el plan y lo revisa frente a la solicitud original.
 - `src/consumir_gemini.py`: construye y envía solicitudes a Gemini, extrae respuestas, mide latencia, calcula costos y valida respuestas JSON.
 - `src/cliente.py`: ofrece funciones para consultar el modelo, reintentar ante TimeoutError y acumular costo y tokens de la sesión.
 - `src/prompts/banco.py`: contiene prompts de RhythmMentor, instrucciones de sistema, ejemplos, claves esperadas y esquemas de respuesta.
@@ -208,6 +220,7 @@ La revisión se guarda en docs/revision_manual.json. Deben existir al menos 20 r
 - `docs/limites_metrica.md`: describe qué mide F1, los límites observados en la muestra y cómo usar la métrica.
 - `docs/resultados_metricas.json`: conserva las 20 consultas, referencias, respuestas y métricas de la evaluación.
 - `tests/`: contiene pruebas automatizadas del cliente, del procesamiento de texto y de las métricas.
+- `tests/test_cadena_tres_pasos.py`: prueba con un modelo simulado que los tres pasos se conectan y que la revisión recibe los requisitos y el plan, sin llamar a Gemini.
 - `pytest.ini`: indica dónde buscar las pruebas al ejecutar pytest.
 - `requirements.txt`: contiene las dependencias necesarias para instalar el proyecto.
 - `.env.example`: plantilla de variables de entorno sin credenciales reales.
@@ -245,6 +258,7 @@ La suite cubre:
 - consultar_modelo: conversión de un timeout agotado, propagación de ValueError y flujo exitoso.
 - calcular_costos y parsear_respuesta_json: validación de los metadatos de tokens y rechazo de JSON que no sea un objeto.
 - Procesamiento y métricas de texto: normalización, casos con referencia vacía, cálculo de métricas y resumen vacío.
+- Cadena LangChain: verifica que se ejecuten los tres pasos y que la revisión reciba los requisitos y el plan, usando un modelo simulado.
 
 ## Registro del ensayo de instalación limpia
 
