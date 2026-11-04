@@ -7,7 +7,13 @@ from langchain_core.runnables import (RunnableBranch, RunnablePassthrough, Runna
 import logging #Generar un archivo de log con los errores que se presenten
 
 logging.basicConfig(
-    level=logging.WARNING
+    level=logging.WARNING,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s", #2026-11-04 19:40 [WARNING] main: No se puede ejecutar x
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename="error.log",
+    filemode="a",
+    encoding="utf-8",
+    force=True
 )
 
 logger = logging.getLogger(__name__)
@@ -78,11 +84,12 @@ cadena_con_enrutamiento = (
 
 #Fallback: cadena de respaldo. Captura las caídas de mi LLM (RatelimitError, 401, APIConnectionError, respuestas vacías)
 
+def fallback_con_log(x):
+    logger.warning("Cadena principal falló. Activando respuesta genérica")
+    return "Gracias por tu mensaje. Un miembro de nuestro equipo te va a responder pronto."
+
 respuesta_generica = RunnableLambda(
-    #TODO: log
-    lambda x: (
-        "Gracias por tu mensaje. Un miembro de nuestro equipo te va a responder pronto."
-    )
+    fallback_con_log
 )
 
 cadena_robusta = cadena_con_enrutamiento.with_fallbacks([respuesta_generica])
@@ -91,7 +98,7 @@ def procesar_mensaje_seguro(cadena, mensaje):
     try:
         return cadena.invoke({"mensaje": mensaje})
     except Exception as error:
-        
+        logger.error("Error procesando mensaje: %s", error)
         return "No pudimos procesar tu mensaje en este momento. Intenta de nuevo más tarde."
 
 if __name__ == "__main__":
