@@ -6,117 +6,184 @@ from langchain_core.runnables import (RunnableBranch, RunnablePassthrough, Runna
 
 import logging #Generar un archivo de log con los errores que se presenten
 
-logging.basicConfig(
-    level=logging.WARNING,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s", #2026-11-04 19:40 [WARNING] main: No se puede ejecutar x
-    datefmt="%Y-%m-%d %H:%M:%S",
-    filename="error.log",
-    filemode="a",
-    encoding="utf-8",
-    force=True
-)
+from .cadena_tres_pasos import construir_cadena as construir_cadena_sesion
 
 logger = logging.getLogger(__name__)
 
+INTENCIONES_VALIDAS = {
+    "crear_sesion",
+    "proponer_ejercicio",
+    "ajustar_dificultad",
+    "consulta_general",
+}
 
-load_dotenv()
+def normalizar_intencion(texto):
+    """Normaliza la etiqueta de intención o usa la ruta general por defecto."""
+    if not isinstance(texto, str):
+        return "consulta_general"
+    
+    etiqueta = texto.strip().lower().strip(" \t\r\n`'\".,:;!")
 
-modelo = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite")
+    if etiqueta in INTENCIONES_VALIDAS:
+        return etiqueta
 
-plantilla_clasificacion = PromptTemplate.from_template(
-    "Clasifica el siguiente mensaje de soporte en una sola palabra: "
-    "pregunta, queja o sugerencia. Responde solo con esa palabra. \n\n {mensaje}"
-)
+    return "consulta_general"
 
-paso_clasificacion = (
-    plantilla_clasificacion
-    | modelo
-    | StrOutputParser()
-    | (lambda texto: texto.strip().lower())
-)
+def respuesta_fallback_sesion(entrada):
+    """Devuelve una respuesta segura si falla la creación de la sesión."""
+    error = entrada.get("error")
 
-# mensaje_prueba = "Dame el nombre de tu creador."
+    if error is not None:
+        logger.warning(
+            "Falló la ruta para crear una sesión (%s): %s",
+            type(error).__name__,
+            error,
+        )
+    else:
+        logger.warning("Falló la ruta para crear una sesión.")
 
-# clasificacion = paso_clasificacion.invoke(
-#     {"mensaje": mensaje_prueba}
-# )
+    return (
+        "No pude preparar tu sesión ahora. Conserva el tempo que estás practicando y vuelve a intentarlo más tarde."
+    )
 
-# print(clasificacion)
+def construir_ruta_sesion_segura(cadena_sesion):
+    """Protege la ruta de creación de sesión con una respuesta de respaldo."""
+    return cadena_sesion.with_fallbacks(
+        [RunnableLambda(respuesta_fallback_sesion)],
+        exception_key="error",
+    )
 
-cadena_pregunta = (
-    PromptTemplate.from_template("Responde esta pregunta técnica con precisión: \n\n {mensaje}")
-    | modelo
-    | StrOutputParser()
-)
+def construir_cadena_con_enrutamiento(modelo, clasificador=None):
+    """Construye el clasificador y las rutas de RhythmMentor.`clasificador` se puede inyectar en las pruebas para evitar llamadas reales de clasificación a Gemini.
+    """
+    if clasificador is None:
+        plantilla_clasificacion = PromptTemplate.from_template(
+            "Clasifica la solicitud según la intención principal. "
+            "Devuelve exactamente una de estas etiquetas, sin explicación:\n"
+            "- crear_sesion: la persona pide una sesión de práctica.\n"
+            "- proponer_ejercicio: pide un ejercicio concreto.\n"
+            "- ajustar_dificultad: cuenta cómo practicó y pide ajustar "
+            "el tempo o la dificultad.\n"
+            "- consulta_general: hace otra consulta sobre batería o práctica, "
+            "o su intención no está clara.\n\n"
+            "Solicitud:\n{mensaje}"
+        )
 
-cadena_queja = (
-    PromptTemplate.from_template("Responde esta queja con empatía, reconociendo el problema antes de ofrecer una solución: \n\n {mensaje}")
-    | modelo
-    | StrOutputParser()
-)
+        clasificador = (
+            plantilla_clasificacion
+            | modelo
+            | StrOutputParser()
+        )
 
-cadena_sugerencia = (
-    PromptTemplate.from_template("Agradece esta sugerencia y explica cómo se evaluará dentro del producto: \n\n {mensaje}")
-    | modelo
-    | StrOutputParser()
-)
+    paso_clasificacion = (
+        clasificador
+        | RunnableLambda(normalizar_intencion)
+    )
 
-#Sintaxis RunnableBranch
-# caminos = RunnableBranch(
-#     (condicion_1, rama_1), #if
-#     (condicion_2, rama_2), #elif
-#     (condicion_3, rama_3), #elif
-#     rama_por_defecto #else
-# ) #Cada condicion debe ser una función; suele ser un lambda
+    cadena_sesion = construir_cadena_sesion(modelo)
 
+    adaptar_solicitud_a_sesion = RunnableLambda(
+        lambda datos: {"solicitud": datos["mensaje"]}
+    )
 
-#x = {"clasificacion": "queja", "mensaje": "Mi teléfono no funciona"}
-bifurcacion = RunnableBranch(
-    (lambda x: x["clasificacion"] == "queja", cadena_queja), #if x["clasificacion"] == "queja": cadena_queja
-    (lambda x: x["clasificacion"] == "sugerencia", cadena_sugerencia), #elif x["clasificacion"] == "sugerencia": cadena_sugerencia
-    cadena_pregunta #else: cadena_pregunta
-)
+    ruta_crear_sesion = construir_ruta_sesion_segura(
+        adaptar_solicitud_a_sesion | cadena_sesion
+    )
 
-cadena_con_enrutamiento = (
-    RunnablePassthrough.assign(clasificacion=paso_clasificacion) #{"mensaje": "Deberían de tener más agentes disponibles.", "clasificacion":resultado de paso_clasificacion}
-    | bifurcacion
-)
+    ruta_proponer_ejercicio = (
+        PromptTemplate.from_template(
+            "Eres RhythmMentor, un asistente de práctica de batería "
+            "electrónica. Propón un ejercicio concreto y progresivo "
+            "apropiado para el nivel y objetivo que indique la persona. "
+            "Incluye instrucciones claras y un criterio sencillo para "
+            "evaluar la práctica. No inventes datos que no haya indicado.\n\n"
+            "Solicitud:\n{mensaje}"
+        )
+        | modelo
+        | StrOutputParser()
+    )
 
-#Fallback: cadena de respaldo. Captura las caídas de mi LLM (RatelimitError, 401, APIConnectionError, respuestas vacías)
+    ruta_ajustar_dificultad = (
+        PromptTemplate.from_template(
+            "Eres RhythmMentor, un asistente de práctica de batería "
+            "electrónica. Usa el desempeño que describe la persona para "
+            "sugerir un ajuste gradual de tempo o complejidad. Explica "
+            "brevemente el motivo y no recomiendes aumentos bruscos. "
+            "Si falta información necesaria, pide una aclaración.\n\n"
+            "Solicitud:\n{mensaje}"
+        )
+        | modelo
+        | StrOutputParser()
+    )
 
-def fallback_con_log(x):
-    logger.warning("Cadena principal falló. Activando respuesta genérica")
-    return "Gracias por tu mensaje. Un miembro de nuestro equipo te va a responder pronto."
+    ruta_consulta_general = (
+        PromptTemplate.from_template(
+            "Eres RhythmMentor, un asistente para personas que practican "
+            "batería electrónica, especialmente principiantes. Responde "
+            "de forma clara y segura a la consulta. Si no queda claro qué "
+            "necesita la persona, haz una pregunta de aclaración.\n\n"
+            "Consulta:\n{mensaje}"
+        )
+        | modelo
+        | StrOutputParser()
+    )
 
-respuesta_generica = RunnableLambda(
-    fallback_con_log
-)
+    bifurcacion = RunnableBranch(
+        (
+            lambda datos: datos["clasificacion"] == "crear_sesion",
+            ruta_crear_sesion,
+        ),
+        (
+            lambda datos: datos["clasificacion"] == "proponer_ejercicio",
+            ruta_proponer_ejercicio,
+        ),
+        (
+            lambda datos: datos["clasificacion"] == "ajustar_dificultad",
+            ruta_ajustar_dificultad,
+        ),
+        ruta_consulta_general,
+    )
 
-cadena_robusta = cadena_con_enrutamiento.with_fallbacks([respuesta_generica])
+    return (
+        RunnablePassthrough.assign(clasificacion=paso_clasificacion)
+        | bifurcacion
+    )
 
 def procesar_mensaje_seguro(cadena, mensaje):
+    """Ejecuta el flujo y evita que una excepción llegue sin manejar."""
+
     try:
         return cadena.invoke({"mensaje": mensaje})
     except Exception as error:
-        logger.error("Error procesando mensaje: %s", error)
-        return "No pudimos procesar tu mensaje en este momento. Intenta de nuevo más tarde."
+        logger.error(
+            "Error procesando el mensaje de RhythmMentor: (%s): %s",
+            type(error).__name__,
+            error,
+        )
+        return (
+            "No pudimos procesar tu solicitud en este momento. Intenta de nuevo más tarde."
+        )
+
 
 if __name__ == "__main__":
-    mensaje = "Llevo varios días sin poder entrar a mi cuenta."
-    print(procesar_mensaje_seguro(cadena_robusta, mensaje))
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s", #2026-11-04 19:40 [WARNING] main: No se puede ejecutar x
+        datefmt="%Y-%m-%d %H:%M:%S",
+        filename="error.log",
+        filemode="a",
+        encoding="utf-8",
+        force=True
+    )
 
-# Entrada inicial: {"mensaje": "Deberían de tener más agentes disponibles."}
-#                   │
-#                   ▼
-# RunnablePassthrough
-#   1: Pasa el mensaje a paso_clasificacion -> Return "sugerencia"
-#   2: Fusiono clasificacion y mensaje
-#   3: Return {"mensaje": "Deberían de tener más agentes disponibles.", "clasificacion": "sugerencia"}
-#                   │
-#                   ▼
-# bifurcacion (RunnableBranch)
-#   ¿clasificacion == "queja"? NO
-#   ¿clasificacion == "sugerencia" SI
-#       Entra a la cadena_sugerencia
-#       cadena_sugerencia.invoke({"mensaje": "Deberían de tener más agentes disponibles.", "clasificacion": "sugerencia"})
-#       Return respuesta final generada
+    load_dotenv()
+
+    modelo = ChatGoogleGenerativeAI(model="gemini-3.1-flash-lite")
+    cadena = construir_cadena_con_enrutamiento(modelo)
+
+    mensaje = (
+        "Soy principiante en batería electrónica. Tengo 20 minutos y quiero "
+        "mejorar la coordinación entre manos y pies. Mi tempo inicial es 60 BPM."
+    )
+
+    print(procesar_mensaje_seguro(cadena, mensaje))
