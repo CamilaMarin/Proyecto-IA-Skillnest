@@ -27,6 +27,13 @@ Lista de pruebas unitarias que conviene agregar en futuras iteraciones de Rhythm
 - [ ] `consistencia.py`: separar la lógica ejecutable de la importación del módulo y probar validación y registro con respuestas simuladas, sin llamadas reales.
 - [ ] `enrutamiento.py`: probar que el fallback registra el tipo y mensaje del error en un archivo de log temporal, sin incluir un traceback.
 
+## Documentación técnica de funciones y pruebas
+
+- [ ] Añadir docstrings a las funciones públicas de `src/`, explicando propósito, parámetros, retorno y excepciones relevantes.
+- [ ] Crear `docs/pruebas.md` con el comando para ejecutar pytest y un resumen de qué cubre cada archivo de pruebas.
+- [ ] Evaluar MkDocs con mkdocstrings para generar una referencia navegable desde Markdown y los docstrings; incorporarlo solo si el proyecto necesita un sitio de documentación.
+- [ ] Cuando RhythmMentor tenga endpoints FastAPI, aprovechar su documentación OpenAPI interactiva para las rutas HTTP y mantener aparte la referencia de funciones internas y pruebas.
+
 ## Integración futura con la batería Alesis Nitro Mesh
 
 - [ ] Confirmar que el módulo Nitro Mesh aparece como dispositivo USB-MIDI en el Mac.
