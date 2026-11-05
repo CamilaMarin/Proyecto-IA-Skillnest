@@ -171,6 +171,17 @@ La cadena procesa una solicitud de RhythmMentor en tres pasos: extrae el nivel, 
 
 Cada ejecución realiza tres llamadas a Gemini y puede estar sujeta a límites o costos de la cuenta. La prueba automatizada usa un modelo simulado y no consume llamadas a la API.
 
+### Enrutar solicitudes de RhythmMentor
+
+```bash
+python -m src.enrutamiento
+```
+El programa clasifica la solicitud y la dirige a una ruta: crear una sesión, proponer un ejercicio, ajustar la dificultad o responder una consulta general. La ruta para crear una sesión reutiliza la cadena LangChain de tres pasos.
+
+Cada ejecución realiza una llamada al modelo para clasificar la solicitud y otra para generar la respuesta. La ruta de creación de sesión realiza tres llamadas adicionales. Por ello, una ejecución puede realizar entre dos y cuatro llamadas a Gemini y estar sujeta a límites o costos de la cuenta.
+
+Si falla la creación de una sesión, el programa registra el nivel, el tipo y el mensaje del error en `error.log`, y entrega una respuesta de respaldo. Si falla otra parte del flujo, `procesar_mensaje_seguro` registra el error y devuelve una respuesta segura. El archivo de log está excluido del repositorio mediante `.gitignore`.
+
 ## Estructura del proyecto
 
 ```text
@@ -183,11 +194,13 @@ Cada ejecución realiza tres llamadas a Gemini y puede estar sujeta a límites o
 │   ├── resultados_metricas.json
 │   └── revision_manual.json
 ├── src/
+│   ├── cadena.py
 │   ├── cadena_tres_pasos.py
 │   ├── cliente.py
 │   ├── comparar_modelos.py
 │   ├── consistencia.py
 │   ├── consumir_gemini.py
+│   ├── enrutamiento.py
 │   ├── pipeline_limpieza.py
 │   ├── pipeline_texto.py
 │   ├── precision.py
@@ -198,6 +211,7 @@ Cada ejecución realiza tres llamadas a Gemini y puede estar sujeta a límites o
 ├── tests/
 │   ├── test_cadena_tres_pasos.py
 │   ├── test_cliente.py
+│   ├── test_orquestacion.py
 │   ├── test_pipeline.py
 │   └── test_precision.py
 ├── .env.example
@@ -206,9 +220,11 @@ Cada ejecución realiza tres llamadas a Gemini y puede estar sujeta a límites o
 ├── README.md
 └── requirements.txt
 ```
+- `src/cadena.py`: contiene una cadena LangChain de ejemplo para explicar un concepto musical.
 - `src/cadena_tres_pasos.py`: construye y ejecuta una cadena LangChain que extrae los requisitos de una sesión, diseña el plan y lo revisa frente a la solicitud original.
 - `src/consumir_gemini.py`: construye y envía solicitudes a Gemini, extrae respuestas, mide latencia, calcula costos y valida respuestas JSON.
 - `src/cliente.py`: ofrece funciones para consultar el modelo, reintentar ante TimeoutError y acumular costo y tokens de la sesión.
+- `src/enrutamiento.py`: clasifica las solicitudes de RhythmMentor y las dirige a la ruta correspondiente; maneja fallos con un fallback y una respuesta segura.
 - `src/prompts/banco.py`: contiene prompts de RhythmMentor, instrucciones de sistema, ejemplos, claves esperadas y esquemas de respuesta.
 - `src/consistencia.py`: ejecuta los prompts del banco y registra cuántas respuestas pasan la validación de formato y claves.
 - `src/comparar_modelos.py`: compara respuestas, latencia y costo estimado y guarda un informe con las respuestas en docs/.
@@ -219,8 +235,9 @@ Cada ejecución realiza tres llamadas a Gemini y puede estar sujeta a límites o
 - `docs/revision_manual.json`: conserva las valoraciones y notas de la revisión manual.
 - `docs/limites_metrica.md`: describe qué mide F1, los límites observados en la muestra y cómo usar la métrica.
 - `docs/resultados_metricas.json`: conserva las 20 consultas, referencias, respuestas y métricas de la evaluación.
-- `tests/`: contiene pruebas automatizadas del cliente, del procesamiento de texto y de las métricas.
+- `tests/`: contiene pruebas automatizadas del cliente, los pipelines de texto y métricas, las cadenas LangChain y el enrutamiento.
 - `tests/test_cadena_tres_pasos.py`: prueba con un modelo simulado que los tres pasos se conectan y que la revisión recibe los requisitos y el plan, sin llamar a Gemini.
+- `tests/test_orquestacion.py`: prueba la normalización de las intenciones, las rutas disponibles y el manejo de fallos con modelos simulados.
 - `pytest.ini`: indica dónde buscar las pruebas al ejecutar pytest.
 - `requirements.txt`: contiene las dependencias necesarias para instalar el proyecto.
 - `.env.example`: plantilla de variables de entorno sin credenciales reales.
@@ -248,7 +265,7 @@ En macOS/Linux, si python no está disponible:
 python3 -m pytest tests -v
 ```
 
-Las pruebas usan pytest y unittest.mock para simular respuestas HTTP y errores. No envían solicitudes reales a Gemini ni necesitan una API key.
+Las pruebas usan pytest, unittest.mock y RunnableLambda para simular respuestas y fallos. No envían solicitudes reales a Gemini ni necesitan una API key.
 
 La suite cubre:
 
@@ -259,6 +276,7 @@ La suite cubre:
 - calcular_costos y parsear_respuesta_json: validación de los metadatos de tokens y rechazo de JSON que no sea un objeto.
 - Procesamiento y métricas de texto: normalización, casos con referencia vacía, cálculo de métricas y resumen vacío.
 - Cadena LangChain: verifica que se ejecuten los tres pasos y que la revisión reciba los requisitos y el plan, usando un modelo simulado.
+- Enrutamiento: normalización de intenciones, rutas de RhythmMentor, fallback de creación de sesión y registro del error original.
 
 ## Registro del ensayo de instalación limpia
 
