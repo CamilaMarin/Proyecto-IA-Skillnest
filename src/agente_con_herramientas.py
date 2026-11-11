@@ -1,81 +1,66 @@
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_core.tools import tool #Herramientas
 from langchain_classic.agents import (
     AgentExecutor,
-    create_tool_calling_agent
+    create_tool_calling_agent,
 )
 from langchain_core.prompts import (
-    ChatPromptTemplate, #Me permite agregar system_instructions y user(human)
-    MessagesPlaceholder
+    ChatPromptTemplate,
+    MessagesPlaceholder,
 )
 
-load_dotenv()
+from .herramientas_rhythmmentor import distribuir_duracion_sesion
 
-modelo = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
 
-#Tool/Herramienta es una funcuión común de Python. Descripción cen lenguaje natural será lo que el modelo lea (prompt) para decidir si elige o no esa herramienta
-@tool
-def buscar_en_documentacion(consulta:str) -> str:
-    """
-    Busca información relevante de la documentación del producto.
-    Usar cuando la pregunta es sobre cómo funciona algo del sistema
-    """
-    documentacion = {
-        "reintentos": "El cliente reintenta hasta 3 veces ante un TimeoutError, con espera creciente",
-        "costos": "El costo se calcula a apartir de totalTokenCount, según la tarifa vigente."
-    }
+HERRAMIENTAS = [distribuir_duracion_sesion]
 
-    for clave, texto in documentacion.items():
-        if clave in consulta.lower():
-            return texto
 
-    return "No se encontró información sobre esa consulta en la documentación"
+def construir_ejecutor(modelo):
+    """Construye el agente de RhythmMentor con sus herramientas."""
 
-@tool
-def calcular(expresion: str) -> str:
-    """
-    Evalúa una expresión aritmética simple, como '350 + 250'.
-    Usar cuando la pregunta requiere un cálculo numérico.
-    """
-    permitido = set("0123456789+-*/().")
-    if not set(expresion) <= permitido:
-        return "Expresión no permitida."
-    try:
-        return str(eval(expresion))
-    except Exception as e:
-        return f"Error al evaluar: {e}"
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                "Eres RhythmMentor, un asistente para personas principiantes que practican batería electrónica. "
+                "Cuando la persona solicite repartir el tiempo de una sesión, el total de minutos debe estar indicado por ella. Si falta, pregunta antes de calcular y no llames a la herramienta. "
+                "Si indicó cuántos ejercicios quiere, respeta esa cantidad. "
+                "Si no indicó una cantidad, puedes proponer una adecuada para el objetivo y el tiempo disponibles. Deja claro que es una decisión de tu propuesta, no un dato entregado por la persona. "
+                "Usa distribuir_duracion_sesion para calcular el reparto. "
+                "La herramienta calcula duraciones; tú propones el contenido musical de los ejercicios por separado.",
+            ),
+            ("human", "{entrada}"),
+            MessagesPlaceholder("agent_scratchpad"),
+        ]
+    )
 
-herramientas = [buscar_en_documentacion, calcular] #Lista de Herramientas
+    agente = create_tool_calling_agent(
+        modelo,
+        HERRAMIENTAS,
+        prompt,
+    )
 
-#Plantilla, con system_instructions
-prompt_agente = ChatPromptTemplate.from_messages([
-    # (
-    #     "system", "Eres un asistente que responde preguntas usando las herramientas disponibles cuando la necesites."
-    # ),
-    (
-        "system", "Eres un asistente que responde preguntas solamente usando las herramientas disponibles cuando las necesites. No inventes información que no tengas."
-    ),
-    (
-        "human", "{entrada}"
-    ),
-    MessagesPlaceholder("agent_scratchpad") #El espacio donde LangChain va anotando, pasos/ciclos razonar-actuar-observar, qué herramientas llamó y qué devolvieron
-])
+    return AgentExecutor(
+        agent=agente,
+        tools=HERRAMIENTAS,
+        verbose=True,
+        return_intermediate_steps=True,
+    )
 
-#Agente: modelo, herramientas, prompt, formato
-agente = create_tool_calling_agent(
-    modelo, herramientas, prompt_agente
-)
 
-#Orquestador: es el que controla el ciclo entre razonar-actuar-observar
-ejecutor_agente = AgentExecutor(
-    agent=agente,
-    tools=herramientas,
-    verbose=True, #Imprime los pasos que va siguiendo
-)
+if __name__ == "__main__":
+    load_dotenv()
 
-resultado = ejecutor_agente.invoke(
-    {"entrada": "¿Qué es LangChain?"}
-)
+    modelo = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
+    ejecutor = construir_ejecutor(modelo)
 
-print("Respuesta Final: ", resultado["output"][0]["text"])
+    resultado = ejecutor.invoke(
+        {
+            "entrada": (
+                "Tengo 10 minutos y quiero hacer tres ejercicios "
+                "de batería. ¿Cómo reparto el tiempo?"
+            )
+        }
+    )
+
+    print("Respuesta:", resultado["output"])
