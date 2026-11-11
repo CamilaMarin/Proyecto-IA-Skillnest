@@ -16,11 +16,43 @@ from langchain_core.runnables.history import RunnableWithMessageHistory #Encapsu
 import queue
 import threading
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
+import json
 
 #=== Configuraciones e Inicializaciones===
 load_dotenv()
 modelo = ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
+
+#=== Persistencia y Análisis de Trazabilidad ===
+def registrar_traza(session_id: str, entrada: str, resultado: dict) -> None:
+    """
+    resultado = {"intermediate_steps": [ #lista de todos los pasos que se siguieron
+        {
+        "AgentAction": {
+            "tool": x,
+            "tool_input": agumentos
+            },
+        "str_observation": respuesta de la herramienta
+        }, #Esto puede pasar n veces
+    ]}    
+    """
+    registro = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "session_id": session_id,
+        "entrada": entrada,
+        "acciones": [
+            {
+                "herramienta": accion.tool,
+                "argumentos": accion.tool_input,
+                "observacion": observacion
+            }
+            for accion, observacion in resultado.get("intermediate_steps", [])
+        ],
+        "respuesta_final": resultado.get("output","")
+    }
+
+    with open("trazas_agente.jsonl", "a", encoding="utf-8") as archivo:
+        archivo.write(json.dumps(registro, ensure_ascii=False) + "\n")
 
 #=== Auditoría/Human in the Loop ===
 registro_aprobaciones = []
@@ -173,9 +205,11 @@ agente = create_tool_calling_agent(modelo, herramientas, prompt_agente)
 ejecutor_agente = AgentExecutor(
     agent=agente,
     tools=herramientas,
-    verbose=True
+    verbose=True,
+    return_intermediate_steps=True
 )
 
+#**kwargs permite dejar intacto y empaquetado todo lo demas, solo se afecta output
 limpiar_salida = RunnableLambda(
     lambda d: {**d, "output": d["output"][0]["text"] if isinstance(d.get("output"), list) else d.get("output")}
 )
@@ -228,15 +262,24 @@ if __name__ == "__main__":
     # )
 
     # print("Turno 4:", resultado4['output'])
-    config_reembolso = {"configurable": {"session_id": "cliente_123"}}
-    resultado_reembolso = agente_con_memoria.invoke(
-        {"entrada": "Mi pedido PED123 llegó roto. Exijo un reembolso de mis 25000 pesos."},
-        config_reembolso
+
+    # config_reembolso = {"configurable": {"session_id": "cliente_123"}}
+    # resultado_reembolso = agente_con_memoria.invoke(
+    #     {"entrada": "Mi pedido PED123 llegó roto. Exijo un reembolso de mis 25000 pesos."},
+    #     config_reembolso
+    # )
+
+    # print("Resultado: ", resultado_reembolso)
+
+    # print("Registro de reembolso:")
+    # for resgistro in registro_aprobaciones:
+    #     print(resgistro)
+
+    config_costo = {"configurable": {"session_id": "cliente_246"}}
+    entrada =  "¿Cuánto me cuesta enviar un paquete de 2.5kg a 50km?"
+    resultado_costo = agente_con_memoria.invoke(
+        {"entrada": entrada},
+        config_costo
     )
-
-    print("Resultado: ", resultado_reembolso)
-
-    print("Registro de reembolso:")
-    for resgistro in registro_aprobaciones:
-        print(resgistro)
-
+    print(resultado_costo["output"])
+    registrar_traza(session_id=config_costo["configurable"]["session_id"], entrada=entrada, resultado=resultado_costo)
