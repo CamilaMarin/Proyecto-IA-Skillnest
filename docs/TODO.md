@@ -1,4 +1,4 @@
-# Pruebas pendientes
+# Seguimiento técnico y pruebas pendientes
 
 Lista de pruebas unitarias que conviene agregar en futuras iteraciones de RhythmMentor. Las pruebas deben usar mocks o datos temporales para evitar llamadas reales a Gemini y escrituras sobre los resultados del proyecto.
 
@@ -44,3 +44,20 @@ Lista de pruebas unitarias que conviene agregar en futuras iteraciones de Rhythm
 - [ ] Manejar y probar desconexiones, ausencia de eventos y cierre de la sesión.
 - [ ] Mantener pruebas automatizadas con eventos MIDI simulados; documentar por separado las comprobaciones manuales que requieren conectar la batería.
 
+## Agentes, memoria, persistencia y HITL
+
+- [x] Adaptar las herramientas y los prompts de los agentes al dominio de RhythmMentor.
+- [x] Verificar que el mismo `session_id` reutiliza su historial y que IDs distintos tienen historiales separados.
+- [x] Implementar el repositorio SQLite para guardar, consultar, listar, editar y eliminar sesiones.
+- [x] Excluir `data/` de Git.
+- [x] Implementar `guardar_sesion_practica` con aprobación explícita y timeout que cancela el guardado.
+- [x] Probar aprobación, rechazo, timeout simulado y rechazo de duraciones inconsistentes, sin llamadas a Gemini.
+- [x] Registrar interacciones reales de distribución y guardado en `trazas_agente.jsonl`.
+- [x] Actualizar `docs/limites_autonomia_agente.md`: documentar `guardar_sesion_practica`, su aprobación y el timeout; aclarar que el borrado permanente todavía no está expuesto como herramienta.
+- [x] Alinear el plan ante errores del documento con la política actual: preguntar si falta el tiempo total; si falta la cantidad de ejercicios, el agente puede proponerla y explicitar que es su propuesta.
+- [ ] Distinguir en la observación de la herramienta un rechazo explícito de un timeout, para que las trazas permitan auditarlos por separado.
+- [ ] Probar manualmente el flujo del timeout en una terminal Windows; el código tiene una rama específica para Windows, pero las pruebas ejecutadas fueron en el entorno macOS.
+- [ ] Revisar la migración desde `InMemoryChatMessageHistory`, que genera una advertencia de obsolescencia con la versión instalada de LangChain.
+- [ ] Actualizar el README con los agentes, SQLite, aprobación, timeout y archivos nuevos.
+- [ ] Decidir si se implementará una herramienta HITL para el borrado permanente de sesiones; actualmente solo existe el método del repositorio.
+- [x] pruebas CRUD de SQLite: ya existe `tests/test_repositorio_sesiones.py` con guardado/lectura, edición, borrado y validación de duraciones.

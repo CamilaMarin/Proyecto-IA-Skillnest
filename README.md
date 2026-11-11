@@ -182,18 +182,43 @@ Cada ejecución realiza una llamada al modelo para clasificar la solicitud y otr
 
 Si falla la creación de una sesión, el programa registra el nivel, el tipo y el mensaje del error en `error.log`, y entrega una respuesta de respaldo. Si falla otra parte del flujo, `procesar_mensaje_seguro` registra el error y devuelve una respuesta segura. El archivo de log está excluido del repositorio mediante `.gitignore`.
 
+### Agente con herramientas y memoria
+
+El agente sin memoria se puede ejecutar desde la raíz del proyecto:
+
+```bash
+python -m src.agente_con_herramientas
+```
+Usa `distribuir_duracion_sesion` para repartir el tiempo disponible entre ejercicios. Esta herramienta solo calcula; no guarda sesiones.
+
+El agente con memoria y guardado controlado se ejecuta con:
+
+```bash
+python -m src.agente_con_memoria
+```
+
+La memoria de conversación se mantiene en RAM y se separa por `session_id`. Se pierde al cerrar el proceso y no reemplaza el historial persistente de prácticas.
+
+El agente solo usa `guardar_sesion_practica` si la persona pide guardar una sesión. Antes de escribir en SQLite, muestra los datos y espera aprobación en la terminal. Escribe `s` y presiona Enter antes de que transcurran 15 segundos para aprobar. El rechazo, el timeout o la falta de una terminal interactiva cancelan el guardado. Ejecutar este ejemplo genera solicitudes a Gemini y puede tener costos.
+
+Las sesiones aprobadas se guardan en `data/sesiones.db`. La carpeta `data/` está excluida por `.gitignore`; no subas allí datos personales. El repositorio permite consultar, listar, editar y eliminar sesiones. La eliminación es permanente y todavía no está disponible como herramienta del agente.
+
 ## Estructura del proyecto
 
 ```text
 .
+├── data/                         # Base local; excluida de Git
 ├── docs/
 │   ├── comparativas de modelos
 │   ├── decisión y diagramas de arquitectura
+│   ├── limites_autonomia_agente.md
 │   ├── limites_metrica.md
 │   ├── registro_rate_limit.md
 │   ├── resultados_metricas.json
 │   └── revision_manual.json
 ├── src/
+│   ├── agente_con_herramientas.py
+│   ├── agente_con_memoria.py
 │   ├── cadena.py
 │   ├── cadena_tres_pasos.py
 │   ├── cliente.py
@@ -201,31 +226,41 @@ Si falla la creación de una sesión, el programa registra el nivel, el tipo y e
 │   ├── consistencia.py
 │   ├── consumir_gemini.py
 │   ├── enrutamiento.py
+│   ├── herramientas_rhythmmentor.py
 │   ├── pipeline_limpieza.py
 │   ├── pipeline_texto.py
 │   ├── precision.py
+│   ├── repositorio_sesiones.py
 │   ├── revision_manual.py
 │   └── prompts/
 │       ├── banco.py
 │       └── registro_resultados.json
 ├── tests/
+│   ├── test_agente_con_memoria.py
 │   ├── test_cadena_tres_pasos.py
 │   ├── test_cliente.py
+│   ├── test_guardar_sesion_hitl.py
 │   ├── test_orquestacion.py
 │   ├── test_pipeline.py
-│   └── test_precision.py
+│   ├── test_precision.py
+│   └── test_repositorio_sesiones.py
 ├── .env.example
 ├── .gitignore
 ├── pytest.ini
 ├── README.md
-└── requirements.txt
+├── requirements.txt
+└── trazas_agente.jsonl
 ```
+- `src/agente_con_herramientas.py`: ejecuta el agente sin memoria, que puede repartir el tiempo entre ejercicios.
+- `src/agente_con_memoria.py`: ejecuta el agente con historial temporal separado por `session_id` y registro de trazas.
 - `src/cadena.py`: contiene una cadena LangChain de ejemplo para explicar un concepto musical.
 - `src/cadena_tres_pasos.py`: construye y ejecuta una cadena LangChain que extrae los requisitos de una sesión, diseña el plan y lo revisa frente a la solicitud original.
 - `src/consumir_gemini.py`: construye y envía solicitudes a Gemini, extrae respuestas, mide latencia, calcula costos y valida respuestas JSON.
 - `src/cliente.py`: ofrece funciones para consultar el modelo, reintentar ante TimeoutError y acumular costo y tokens de la sesión.
 - `src/enrutamiento.py`: clasifica las solicitudes de RhythmMentor y las dirige a la ruta correspondiente; maneja fallos con un fallback y una respuesta segura.
+- `src/herramientas_rhythmmentor.py`: define la distribución de duración y el guardado con aprobación humana.
 - `src/prompts/banco.py`: contiene prompts de RhythmMentor, instrucciones de sistema, ejemplos, claves esperadas y esquemas de respuesta.
+- `src/repositorio_sesiones.py`: guarda, consulta, edita y elimina sesiones en SQLite.
 - `src/consistencia.py`: ejecuta los prompts del banco y registra cuántas respuestas pasan la validación de formato y claves.
 - `src/comparar_modelos.py`: compara respuestas, latencia y costo estimado y guarda un informe con las respuestas en docs/.
 - `src/pipeline_limpieza.py`: normaliza texto y lo convierte en tokens.
@@ -233,13 +268,18 @@ Si falla la creación de una sesión, el programa registra el nivel, el tipo y e
 - `src/precision.py`: calcula precisión, cobertura y F1 sobre tokens, ejecuta casos y guarda los resultados en `docs/resultados_metricas.json`.
 - `src/revision_manual.py`: permite revisar los diez resultados seleccionados con la rúbrica cualitativa.
 - `docs/revision_manual.json`: conserva las valoraciones y notas de la revisión manual.
+- `docs/limites_autonomia_agente.md`: documenta riesgos, aprobación humana y revisión de trazas.
 - `docs/limites_metrica.md`: describe qué mide F1, los límites observados en la muestra y cómo usar la métrica.
 - `docs/resultados_metricas.json`: conserva las 20 consultas, referencias, respuestas y métricas de la evaluación.
 - `tests/`: contiene pruebas automatizadas del cliente, los pipelines de texto y métricas, las cadenas LangChain y el enrutamiento.
+- `tests/test_agente_con_memoria.py`: verifica que se reutilice el historial de una misma sesión y que distintos `session_id` no compartan mensajes.
+- `tests/test_repositorio_sesiones.py`: verifica guardado, lectura, edición, borrado y validación usando una base SQLite temporal.
+- `tests/test_guardar_sesion_hitl.py`: simula aprobación, rechazo y timeout; verifica que los datos inválidos o no aprobados no se guarden.
 - `tests/test_cadena_tres_pasos.py`: prueba con un modelo simulado que los tres pasos se conectan y que la revisión recibe los requisitos y el plan, sin llamar a Gemini.
 - `tests/test_orquestacion.py`: prueba la normalización de las intenciones, las rutas disponibles y el manejo de fallos con modelos simulados.
 - `pytest.ini`: indica dónde buscar las pruebas al ejecutar pytest.
 - `requirements.txt`: contiene las dependencias necesarias para instalar el proyecto.
+- `trazas_agente.jsonl`: registra entradas, llamadas a herramientas, observaciones y respuestas; usa datos de prueba sin información sensible.
 - `.env.example`: plantilla de variables de entorno sin credenciales reales.
 - `.gitignore`: indica a Git qué archivos debe ignorar, incluidos .env y el entorno virtual.
 
@@ -277,6 +317,10 @@ La suite cubre:
 - Procesamiento y métricas de texto: normalización, casos con referencia vacía, cálculo de métricas y resumen vacío.
 - Cadena LangChain: verifica que se ejecuten los tres pasos y que la revisión reciba los requisitos y el plan, usando un modelo simulado.
 - Enrutamiento: normalización de intenciones, rutas de RhythmMentor, fallback de creación de sesión y registro del error original.
+- Memoria del agente: reutilización del historial con el mismo `session_id` y aislamiento entre IDs distintos.
+- Repositorio SQLite: persistencia, lectura, edición, eliminación y validación con una base temporal.
+- Guardado HITL: aprobación, rechazo, timeout y rechazo de planes con duraciones inconsistentes, usando mocks y sin llamar a Gemini.
+
 
 ## Registro del ensayo de instalación limpia
 
