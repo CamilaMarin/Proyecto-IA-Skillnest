@@ -8,16 +8,14 @@
 
 - `guardar_sesion_practica`: medio; realiza una escritura local reversible
   en `data/sesiones.db`. Guarda datos de una sesión de práctica. Antes de
-  escribir, muestra el contenido y espera aprobación humana.
+  escribir, muestra el contenido y espera aprobación humana. 
 
-La memoria de conversación no es una herramienta. Se guarda temporalmente
-en `HISTORIALES`, separada por `session_id`, y se pierde al cerrar el proceso.
+La memoria de conversación no es una herramienta. Se guarda temporalmente en `HISTORIALES`, separada por `session_id`, y se pierde al cerrar el proceso.
 No es el almacenamiento permanente de sesiones.
 
 ## Herramientas que requieren aprobación humana
 
-- `guardar_sesion_practica`: requiere que la persona confirme el resumen antes de escribirlo en SQLite. Solo `s` seguido de Enter aprueba el guardado.
-Un rechazo, EOF, una interrupción, la ausencia de terminal interactiva o el vencimiento del timeout de 15 segundos cancela la escritura.
+- `guardar_sesion_practica`: requiere aprobación humana porque guarda persistentemente en SQLite un plan generado por IA con datos de práctica. La persona debe revisar y confirmar el resumen antes de escribirlo. Solo `s` seguido de Enter aprueba el guardado. Un rechazo, EOF, una interrupción, la ausencia de una terminal interactiva o el vencimiento del timeout de 15 segundos cancela la escritura.
 
 - `eliminar_sesion` existe en el repositorio, pero todavía no está expuesta como herramienta del agente. Elimina permanentemente; si se expone en el futuro, debe tener una aprobación humana antes de ejecutarse.
 
