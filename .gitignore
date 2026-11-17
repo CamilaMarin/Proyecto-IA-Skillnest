@@ -22,3 +22,6 @@ Thumbs.db
 
 # Datos locales del proyecto (sesiones de práctica)
 data/
+
+# Datos 
+chroma_db/
