@@ -25,3 +25,6 @@ data/
 
 # Datos 
 chroma_db/
+
+#Credenciales
+credenciales.json
